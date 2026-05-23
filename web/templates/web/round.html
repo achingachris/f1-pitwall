@@ -1,0 +1,7 @@
+{% extends "web/base.html" %}
+{% block content %}
+  <p class="crumbs"><a class="back-link" href="{% url 'web:season' year %}">← {{ year }} season</a></p>
+  <h1>{{ round.name }}</h1>
+  <p class="subhead">Round {{ round.number }} · {{ round.circuit.name }} · {{ round.date|date:"M d, Y" }}</p>
+  {% include "web/partials/round_body.html" %}
+{% endblock %}

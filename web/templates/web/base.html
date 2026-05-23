@@ -1,0 +1,53 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark only">
+  <meta name="theme-color" content="#021830">
+  <title>{% block title %}Pitwall{% if year %} · {{ year }}{% endif %}{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{% static 'web/img/favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'web/img/favicon.png' %}">
+  <link rel="stylesheet" href="{% static 'web/styles.css' %}">
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="{% url 'web:landing' %}">
+        <span class="brand-mark"><img src="{% static 'web/img/pitwall-logo.png' %}" alt="" width="40" height="40"></span>
+        <span class="brand-text">Pitwall</span>
+      </a>
+      <nav class="nav">
+        {% if year %}
+          <a href="{% url 'web:season' year %}">{{ year }}</a>
+          <a href="{% url 'web:driver_standings' year %}">Standings</a>
+          <a href="{% url 'web:driver_contenders' year %}">Contenders</a>
+          <a href="{% url 'web:most_improved' year %}">Most improved</a>
+          <a href="{% url 'web:funstats' year %}">Fun stats</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+  <main>
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      Data via <a href="https://github.com/jolpica/jolpica-f1">jolpica-f1</a>.
+    </div>
+  </footer>
+
+  <div id="modal-root"></div>
+  <script>
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        var root = document.getElementById('modal-root');
+        if (root && root.innerHTML) root.innerHTML = '';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<div class="modal-overlay"
+     onclick="if(event.target===this){document.getElementById('modal-root').innerHTML='';}">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <div>
+        <h2>{% block modal_title %}{% endblock %}</h2>
+        {% block modal_subhead %}{% endblock %}
+      </div>
+      <button type="button" class="modal-close"
+              onclick="document.getElementById('modal-root').innerHTML='';"
+              aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      {% block modal_body %}{% endblock %}
+    </div>
+  </div>
+</div>

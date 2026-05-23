@@ -1,0 +1,13 @@
+{% extends "web/base.html" %}
+{% block content %}
+  <p class="crumbs"><a class="back-link" href="{% url 'web:season' year %}">← {{ year }} season</a></p>
+  <h1>{% if kind == 'driver' %}Drivers' standings{% else %}Constructors' standings{% endif %}</h1>
+  <p class="subhead">After R{{ latest.number }} · {{ latest.name }}</p>
+
+  <div class="btn-row" style="margin-bottom: 20px;">
+    <a class="btn {% if kind == 'driver' %}btn-primary{% endif %}" href="{% url 'web:driver_standings' year %}">Drivers</a>
+    <a class="btn {% if kind == 'constructor' %}btn-primary{% endif %}" href="{% url 'web:team_standings' year %}">Constructors</a>
+  </div>
+
+  {% include "web/partials/standings_body.html" %}
+{% endblock %}

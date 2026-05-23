@@ -1,0 +1,80 @@
+{% extends "web/partials/_modal_shell.html" %}
+
+{% block modal_title %}{% if flag %}<span class="flag">{{ flag }}</span>{% endif %}{{ driver.given_name }} {{ driver.family_name }}{% endblock %}
+{% block modal_subhead %}
+  <p class="subhead muted">
+    {% if driver.code %}<span class="pill">{{ driver.code }}</span>{% endif %}
+    {{ driver.nationality }}{% if country_code %} · {{ country_code }}{% endif %}
+    {% if driver.age %} · {{ driver.age }} yrs{% endif %}
+    {% if driver.date_of_birth %} · born {{ driver.date_of_birth|date:"M j, Y" }}{% endif %}
+  </p>
+{% endblock %}
+
+{% block modal_body %}
+  <div class="modal-section modal-portrait">
+    {% if bio.thumbnail %}<img src="{{ bio.thumbnail }}" alt="">{% endif %}
+    <div class="meta">
+      {% if bio.extract %}
+        <p class="bio-text">{{ bio.extract|truncatewords:60 }}</p>
+      {% endif %}
+      {% if bio.url or driver.url %}
+        <p class="bio-link"><a href="{{ bio.url|default:driver.url }}" target="_blank" rel="noopener">Read on Wikipedia →</a></p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="modal-section">
+    <h3>{{ year }} season</h3>
+    <div class="modal-stats">
+      <div class="modal-stat"><div class="label">Pos</div><div class="value">{% if standing %}{{ standing.position }}{% else %}—{% endif %}</div></div>
+      <div class="modal-stat"><div class="label">Points</div><div class="value">{{ season_points }}</div></div>
+      <div class="modal-stat"><div class="label">Wins</div><div class="value">{{ season_wins }}</div></div>
+      <div class="modal-stat"><div class="label">Podiums</div><div class="value">{{ season_podiums }}</div></div>
+      <div class="modal-stat"><div class="label">Starts</div><div class="value">{{ season_starts }}</div></div>
+      <div class="modal-stat"><div class="label">Best</div><div class="value">{% if season_best %}P{{ season_best }}{% else %}—{% endif %}</div></div>
+      <div class="modal-stat"><div class="label">—</div><div class="value">—</div></div>
+      <div class="modal-stat"><div class="label">—</div><div class="value">—</div></div>
+    </div>
+    {% if constructors_this_year %}
+      <p class="card-sub" style="margin-top:10px;">
+        Driving for
+        {% for c in constructors_this_year %}<strong>{{ c }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}
+      </p>
+    {% endif %}
+  </div>
+
+  {% if recent %}
+    <div class="modal-section">
+      <h3>Recent races ({{ year }})</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th class="num">Rd</th><th>Grand Prix</th><th class="num">Pos</th><th class="num">Pts</th></tr></thead>
+          <tbody>
+            {% for r in recent %}
+              <tr>
+                <td class="num pos">{{ r.round.number }}</td>
+                <td>{{ r.round.name }}</td>
+                <td class="num">{{ r.position_text }}</td>
+                <td class="num">{{ r.points }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="modal-section">
+    <h3>Career (across {{ seasons_active }} season{{ seasons_active|pluralize }} of synced data)</h3>
+    <div class="modal-stats">
+      <div class="modal-stat"><div class="label">Starts</div><div class="value">{{ career_starts }}</div></div>
+      <div class="modal-stat"><div class="label">Points</div><div class="value">{{ career_points }}</div></div>
+      <div class="modal-stat"><div class="label">Wins</div><div class="value">{{ career_wins }}</div></div>
+      <div class="modal-stat"><div class="label">Podiums</div><div class="value">{{ career_podiums }}</div></div>
+      <div class="modal-stat"><div class="label">Poles</div><div class="value">{{ career_poles }}</div></div>
+      <div class="modal-stat"><div class="label">Fastest laps</div><div class="value">{{ career_fastest_laps }}</div></div>
+      <div class="modal-stat"><div class="label">Best</div><div class="value">{% if career_best %}P{{ career_best }}{% else %}—{% endif %}</div></div>
+      <div class="modal-stat"><div class="label">—</div><div class="value">—</div></div>
+    </div>
+  </div>
+{% endblock %}

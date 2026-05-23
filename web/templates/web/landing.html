@@ -1,0 +1,109 @@
+{% extends "web/base.html" %}
+{% block content %}
+  <h1>Who can still win {{ year }}?</h1>
+  <p class="subhead">Top 5 by points — based on remaining race + sprint points.</p>
+
+  <div class="grid grid-2">
+    <div class="card contender-card">
+      <div class="card-head">
+        <h2>Drivers</h2>
+        {% if drivers_alive %}<span class="pill pill-accent">{{ drivers_alive }} still alive</span>{% endif %}
+      </div>
+      <table class="table contender-table">
+        <thead>
+          <tr>
+            <th class="num">#</th>
+            <th>Driver</th>
+            <th class="num">Pts</th>
+            <th class="num">Gap</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in top_drivers %}
+            <tr>
+              <td class="num pos">{{ forloop.counter }}</td>
+              <td>
+                {% if c.ref %}
+                  <a class="entity-link" hx-get="{% url 'web:driver_modal' c.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML"><strong>{{ c.label }}</strong></a>
+                {% else %}
+                  <strong>{{ c.label }}</strong>
+                {% endif %}
+              </td>
+              <td class="num">{{ c.points }}</td>
+              <td class="num">{% if c.gap == 0 %}—{% else %}+{{ c.gap }}{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td class="empty" colspan="4">No data — sync the season first.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="card-foot">
+        <a href="{% url 'web:driver_contenders' year %}">See all drivers →</a>
+      </div>
+    </div>
+
+    <div class="card contender-card">
+      <div class="card-head">
+        <h2>Constructors</h2>
+        {% if teams_alive %}<span class="pill pill-accent">{{ teams_alive }} still alive</span>{% endif %}
+      </div>
+      <table class="table contender-table">
+        <thead>
+          <tr>
+            <th class="num">#</th>
+            <th>Constructor</th>
+            <th class="num">Pts</th>
+            <th class="num">Gap</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in top_teams %}
+            <tr>
+              <td class="num pos">{{ forloop.counter }}</td>
+              <td>
+                {% if c.ref %}
+                  <a class="entity-link" hx-get="{% url 'web:team_modal' c.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML"><strong>{{ c.label }}</strong></a>
+                {% else %}
+                  <strong>{{ c.label }}</strong>
+                {% endif %}
+              </td>
+              <td class="num">{{ c.points }}</td>
+              <td class="num">{% if c.gap == 0 %}—{% else %}+{{ c.gap }}{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td class="empty" colspan="4">No data — sync the season first.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="card-foot">
+        <a href="{% url 'web:team_contenders' year %}">See all constructors →</a>
+      </div>
+    </div>
+  </div>
+
+  <section class="section">
+    <h2>Explore</h2>
+    <div class="btn-row">
+      <a class="btn" href="{% url 'web:season' year %}">{{ year }} season</a>
+      <a class="btn" href="{% url 'web:driver_standings' year %}">Standings</a>
+      <a class="btn" href="{% url 'web:most_improved' year %}">Most improved</a>
+      <a class="btn" href="{% url 'web:funstats' year %}">Fun stats</a>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Past seasons</h2>
+    {% if seasons %}
+      <div class="tag-list">
+        {% for y in seasons %}
+          <a class="tag" href="{% url 'web:season' y %}">{{ y }}</a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">No seasons synced yet. Run
+        <code>python manage.py sync_year {{ year }}</code> or
+        <code>python manage.py backfill_history</code>.
+      </p>
+    {% endif %}
+  </section>
+{% endblock %}

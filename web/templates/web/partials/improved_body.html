@@ -1,0 +1,97 @@
+<div class="grid grid-2">
+  {% with data.driver as d %}
+    <div class="card">
+      <p class="card-title">Driver</p>
+      <p class="card-value">
+        {% if d and d.ref %}
+          <a class="entity-link" hx-get="{% url 'web:driver_modal' d.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ d.label }}</a>
+        {% elif d %}{{ d.label }}{% else %}—{% endif %}
+      </p>
+      {% if d %}
+        <p class="card-sub">
+          <span class="{% if d.delta >= 0 %}delta-pos{% else %}delta-neg{% endif %}">
+            {% if d.delta >= 0 %}+{% endif %}{{ d.delta|floatformat:2 }}
+          </span>
+          pts/round
+        </p>
+      {% endif %}
+    </div>
+  {% endwith %}
+  {% with data.team as t %}
+    <div class="card">
+      <p class="card-title">Constructor</p>
+      <p class="card-value">
+        {% if t and t.ref %}
+          <a class="entity-link" hx-get="{% url 'web:team_modal' t.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ t.label }}</a>
+        {% elif t %}{{ t.label }}{% else %}—{% endif %}
+      </p>
+      {% if t %}
+        <p class="card-sub">
+          <span class="{% if t.delta >= 0 %}delta-pos{% else %}delta-neg{% endif %}">
+            {% if t.delta >= 0 %}+{% endif %}{{ t.delta|floatformat:2 }}
+          </span>
+          pts/round
+        </p>
+      {% endif %}
+    </div>
+  {% endwith %}
+</div>
+
+<div class="section">
+  <h2>Detail</h2>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Name</th>
+          <th class="num">1st half avg</th>
+          <th class="num">2nd half avg</th>
+          <th class="num">Δ pts/round</th>
+          <th class="num">Rounds</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% with data.driver as d %}
+          {% if d %}
+            <tr>
+              <td>Driver</td>
+              <td>
+                {% if d.ref %}
+                  <a class="entity-link" hx-get="{% url 'web:driver_modal' d.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML"><strong>{{ d.label }}</strong></a>
+                {% else %}<strong>{{ d.label }}</strong>{% endif %}
+              </td>
+              <td class="num">{{ d.first_half_avg|floatformat:2 }}</td>
+              <td class="num">{{ d.second_half_avg|floatformat:2 }}</td>
+              <td class="num {% if d.delta >= 0 %}delta-pos{% else %}delta-neg{% endif %}">
+                {% if d.delta >= 0 %}+{% endif %}{{ d.delta|floatformat:2 }}
+              </td>
+              <td class="num">{{ d.rounds_played }}</td>
+            </tr>
+          {% endif %}
+        {% endwith %}
+        {% with data.team as t %}
+          {% if t %}
+            <tr>
+              <td>Constructor</td>
+              <td>
+                {% if t.ref %}
+                  <a class="entity-link" hx-get="{% url 'web:team_modal' t.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML"><strong>{{ t.label }}</strong></a>
+                {% else %}<strong>{{ t.label }}</strong>{% endif %}
+              </td>
+              <td class="num">{{ t.first_half_avg|floatformat:2 }}</td>
+              <td class="num">{{ t.second_half_avg|floatformat:2 }}</td>
+              <td class="num {% if t.delta >= 0 %}delta-pos{% else %}delta-neg{% endif %}">
+                {% if t.delta >= 0 %}+{% endif %}{{ t.delta|floatformat:2 }}
+              </td>
+              <td class="num">{{ t.rounds_played }}</td>
+            </tr>
+          {% endif %}
+        {% endwith %}
+        {% if not data.driver and not data.team %}
+          <tr><td class="empty" colspan="6">No data yet.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>

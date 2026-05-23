@@ -1,0 +1,32 @@
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr>
+        <th class="num" style="width:48px;">Pos</th>
+        <th>{% if kind == 'driver' %}Driver{% else %}Constructor{% endif %}</th>
+        {% if kind == 'driver' %}<th>Code</th>{% endif %}
+        <th class="num">Points</th>
+        <th class="num">Wins</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="num pos">{{ row.position }}</td>
+          <td>
+            {% if kind == 'driver' %}
+              <a class="entity-link" hx-get="{% url 'web:driver_modal' row.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ row.driver.given_name }} {{ row.driver.family_name }}</a>
+            {% else %}
+              <a class="entity-link" hx-get="{% url 'web:team_modal' row.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ row.constructor.name }}</a>
+            {% endif %}
+          </td>
+          {% if kind == 'driver' %}<td class="team mono">{{ row.driver.code|default:"—" }}</td>{% endif %}
+          <td class="num"><strong>{{ row.points }}</strong></td>
+          <td class="num">{{ row.wins }}</td>
+        </tr>
+      {% empty %}
+        <tr><td class="empty" colspan="5">No standings yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

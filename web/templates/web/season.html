@@ -1,0 +1,13 @@
+{% extends "web/base.html" %}
+{% block content %}
+  <div class="section-row">
+    <div>
+      <h1>{{ season.year }} season</h1>
+      <p class="muted">{{ rounds|length }} round{{ rounds|length|pluralize }}</p>
+    </div>
+    {% if season.last_synced %}
+      <p class="muted">Synced {{ season.last_synced|date:"Y-m-d H:i" }}</p>
+    {% endif %}
+  </div>
+  {% include "web/partials/season_body.html" %}
+{% endblock %}

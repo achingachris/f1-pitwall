@@ -1,0 +1,93 @@
+<section class="section">
+  <h2>Race</h2>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="num">Pos</th>
+          <th>Driver</th>
+          <th>Team</th>
+          <th class="num">Grid</th>
+          <th class="num">Pts</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in race %}
+          <tr>
+            <td class="num pos">{{ r.position_text }}</td>
+            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
+            <td><a class="entity-link team" hx-get="{% url 'web:team_modal' r.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.constructor.name }}</a></td>
+            <td class="num">{{ r.grid }}</td>
+            <td class="num">{{ r.points }}</td>
+            <td class="team">{{ r.status }}</td>
+          </tr>
+        {% empty %}
+          <tr><td class="empty" colspan="6">No race results.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Qualifying</h2>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="num">Pos</th>
+          <th>Driver</th>
+          <th>Team</th>
+          <th class="num">Q1</th>
+          <th class="num">Q2</th>
+          <th class="num">Q3</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in quali %}
+          <tr>
+            <td class="num pos">{{ q.position }}</td>
+            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' q.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ q.driver.given_name }} {{ q.driver.family_name }}</a></td>
+            <td><a class="entity-link team" hx-get="{% url 'web:team_modal' q.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ q.constructor.name }}</a></td>
+            <td class="num mono">{{ q.q1|default:"—" }}</td>
+            <td class="num mono">{{ q.q2|default:"—" }}</td>
+            <td class="num mono">{{ q.q3|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td class="empty" colspan="6">No qualifying results.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if round.has_sprint %}
+<section class="section">
+  <h2>Sprint</h2>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="num">Pos</th>
+          <th>Driver</th>
+          <th>Team</th>
+          <th class="num">Pts</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in sprint %}
+          <tr>
+            <td class="num pos">{{ r.position_text }}</td>
+            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
+            <td><a class="entity-link team" hx-get="{% url 'web:team_modal' r.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.constructor.name }}</a></td>
+            <td class="num">{{ r.points }}</td>
+          </tr>
+        {% empty %}
+          <tr><td class="empty" colspan="4">No sprint results.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}

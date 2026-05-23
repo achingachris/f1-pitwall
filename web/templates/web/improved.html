@@ -1,0 +1,7 @@
+{% extends "web/base.html" %}
+{% block content %}
+  <p class="crumbs"><a class="back-link" href="{% url 'web:season' year %}">← {{ year }} season</a></p>
+  <h1>Most improved · {{ year }}</h1>
+  <p class="subhead">Second-half average points/round minus first-half average.</p>
+  {% include "web/partials/improved_body.html" %}
+{% endblock %}

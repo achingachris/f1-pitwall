@@ -1,0 +1,69 @@
+<div class="card">
+  <p class="card-title">Season fastest lap</p>
+  {% with data.season_fastest_lap as f %}
+    {% if f %}
+      <p class="card-value mono">{{ f.fastest_lap_time }}</p>
+      <p class="card-sub">
+        <a class="entity-link" hx-get="{% url 'web:driver_modal' f.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ f.driver.given_name }} {{ f.driver.family_name }}</a> · {{ f.round.name }}
+      </p>
+    {% else %}
+      <p class="muted">No fastest-lap data yet.</p>
+    {% endif %}
+  {% endwith %}
+</div>
+
+<section class="section">
+  <h2>Fastest lap per Grand Prix</h2>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="num" style="width:48px;">Rd</th>
+          <th>Grand Prix</th>
+          <th>Driver</th>
+          <th class="num">Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in data.fastest_lap_per_gp %}
+          <tr>
+            <td class="num pos">{{ r.round.number }}</td>
+            <td>{{ r.round.name }}</td>
+            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
+            <td class="num mono">{{ r.fastest_lap_time }}</td>
+          </tr>
+        {% empty %}
+          <tr><td class="empty" colspan="4">No data yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Slowest classified finisher (per GP)</h2>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="num" style="width:48px;">Rd</th>
+          <th>Grand Prix</th>
+          <th>Driver</th>
+          <th class="num">Finish position</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in data.slowest_finishers %}
+          <tr>
+            <td class="num pos">{{ r.round.number }}</td>
+            <td>{{ r.round.name }}</td>
+            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
+            <td class="num">{{ r.position }}</td>
+          </tr>
+        {% empty %}
+          <tr><td class="empty" colspan="4">No data yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>

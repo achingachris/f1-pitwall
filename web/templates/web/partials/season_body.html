@@ -1,0 +1,49 @@
+<div class="grid grid-3" style="margin-top: 20px;">
+  <a class="card" href="{% url 'web:driver_standings' year %}">
+    <p class="card-title">Standings</p>
+    <h3>Drivers</h3>
+    <p class="card-sub">Live driver standings table.</p>
+  </a>
+  <a class="card" href="{% url 'web:team_standings' year %}">
+    <p class="card-title">Standings</p>
+    <h3>Constructors</h3>
+    <p class="card-sub">Live constructor standings.</p>
+  </a>
+  <a class="card" href="{% url 'web:driver_contenders' year %}">
+    <p class="card-title pill-accent" style="display:inline-block;">Headline</p>
+    <h3>Title contenders</h3>
+    <p class="card-sub">Who can still win the championship.</p>
+  </a>
+</div>
+
+<section class="section">
+  <h2>Calendar</h2>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="num" style="width:48px;">Rd</th>
+          <th>Date</th>
+          <th>Grand Prix</th>
+          <th>Circuit</th>
+          <th>Sprint</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rounds %}
+          <tr>
+            <td class="num pos">{{ r.number }}</td>
+            <td>{{ r.date|date:"M d" }}</td>
+            <td><strong>{{ r.name }}</strong></td>
+            <td class="team">{{ r.circuit.name }}</td>
+            <td>{% if r.has_sprint %}<span class="pill">Sprint</span>{% endif %}</td>
+            <td class="num"><a href="{% url 'web:round' year r.number %}">View →</a></td>
+          </tr>
+        {% empty %}
+          <tr><td class="empty" colspan="6">No rounds yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>

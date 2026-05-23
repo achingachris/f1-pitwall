@@ -1,0 +1,17 @@
+Django>=5.2,<6
+django-htmx>=1.21
+celery[redis]>=5.4
+redis>=5.0
+requests>=2.32
+psycopg[binary]>=3.2
+python-decouple>=3.8
+gunicorn>=23.0
+whitenoise>=6.7
+
+# dev / tooling
+black>=24.10
+isort>=5.13
+pre-commit>=4.0
+pytest>=8.3
+pytest-django>=4.9
+responses>=0.25
