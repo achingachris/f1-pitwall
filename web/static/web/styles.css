@@ -876,6 +876,7 @@ p {
     display: none;
     flex-direction: column;
     grid-column: 1 / -1;
+    grid-row: 2;
     gap: 4px;
     justify-content: flex-start;
     padding: 6px;
@@ -892,6 +893,8 @@ p {
   }
 
   .header-actions {
+    grid-column: 2;
+    grid-row: 1;
     justify-self: end;
   }
 
