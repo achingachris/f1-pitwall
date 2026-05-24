@@ -27,6 +27,72 @@ def about(request):
     return render(request, "web/about.html")
 
 
+def _error_response(request, *, status: int, title: str, message: str, detail: str):
+    return render(
+        request,
+        "web/error.html",
+        {
+            "status_code": status,
+            "title": title,
+            "message": message,
+            "detail": detail,
+        },
+        status=status,
+    )
+
+
+def bad_request(request, exception):
+    return _error_response(
+        request,
+        status=400,
+        title="That request did not line up",
+        message="The request reached Pitwall, but something in it could not be understood.",
+        detail=(
+            "Try the home page or a recent season link. If you followed a saved URL, "
+            "the route or query string may have changed."
+        ),
+    )
+
+
+def permission_denied(request, exception):
+    return _error_response(
+        request,
+        status=403,
+        title="That area is restricted",
+        message="Pitwall understood the request, but this page is not open for your session.",
+        detail=(
+            "If you expected access, head back to the public pages for now. This app is "
+            "still intentionally small and may not expose every internal route."
+        ),
+    )
+
+
+def page_not_found(request, exception):
+    return _error_response(
+        request,
+        status=404,
+        title="This lap is not on the timing screen",
+        message="The page you asked for does not exist, moved, or has not been built yet.",
+        detail=(
+            "Check the URL, start from the latest season, or try the Telegram bot if you "
+            "were looking for standings, contenders, or race-weekend info."
+        ),
+    )
+
+
+def server_error(request):
+    return _error_response(
+        request,
+        status=500,
+        title="The pit wall dropped the headset",
+        message="Something broke while Pitwall was preparing this page.",
+        detail=(
+            "Give it a moment and try again. If it keeps happening, opening an issue with "
+            "the page URL and what you were trying to do would be genuinely useful."
+        ),
+    )
+
+
 def landing(request):
     year = date.today().year
     seasons = list(Season.objects.values_list("year", flat=True)[:30])

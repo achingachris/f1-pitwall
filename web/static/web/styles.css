@@ -422,6 +422,42 @@ p {
   font-size: 13px;
 }
 
+.error-page {
+  align-items: center;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  min-height: min(620px, calc(100vh - 220px));
+  padding: 36px 0;
+}
+
+.error-code {
+  color: var(--teal);
+  font-size: clamp(82px, 16vw, 168px);
+  font-weight: 850;
+  line-height: 0.9;
+  text-align: center;
+}
+
+.error-panel {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.error-panel p {
+  max-width: 680px;
+}
+
+.error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
 .grid {
   display: grid;
   gap: 16px;
@@ -908,6 +944,22 @@ p {
 
   .modal-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .error-page {
+    align-items: start;
+    gap: 14px;
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 12px 0 24px;
+  }
+
+  .error-code {
+    text-align: left;
+  }
+
+  .error-panel {
+    padding: 18px;
   }
 
   .telegram-fab {

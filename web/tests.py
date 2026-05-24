@@ -1,10 +1,46 @@
-from django.test import TestCase
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
+from django.test import RequestFactory, TestCase, override_settings
 
 import responses
 
-from web import nationalities
+from web import nationalities, views
 from web.services import wiki
 from web.templatetags.flags import flag
+
+
+class ErrorPageTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    @override_settings(DEBUG=False)
+    def test_missing_page_uses_custom_404_template(self):
+        response = self.client.get("/not-a-real-pitwall-page/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertContains(response, "This lap is not on the timing screen", status_code=404)
+        self.assertContains(response, "first-time fun project", status_code=404)
+        self.assertContains(response, "https://github.com/achingachris/f1-pitwall", status_code=404)
+
+    def test_bad_request_page_is_user_friendly(self):
+        response = views.bad_request(self.factory.get("/"), SuspiciousOperation("bad"))
+
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "That request did not line up", status_code=400)
+        self.assertContains(response, "Go home", status_code=400)
+
+    def test_permission_denied_page_is_user_friendly(self):
+        response = views.permission_denied(self.factory.get("/"), PermissionDenied("no"))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "That area is restricted", status_code=403)
+        self.assertContains(response, "Telegram bot", status_code=403)
+
+    def test_server_error_page_is_user_friendly(self):
+        response = views.server_error(self.factory.get("/"))
+
+        self.assertEqual(response.status_code, 500)
+        self.assertContains(response, "The pit wall dropped the headset", status_code=500)
+        self.assertContains(response, "opening an issue", status_code=500)
 
 
 class SeoMetaTests(TestCase):

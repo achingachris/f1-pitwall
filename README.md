@@ -78,11 +78,18 @@ docker compose exec web python manage.py sync_year $(date +%Y)
 ```
 
 Services: `web` (gunicorn), `worker` (Celery), `beat` (scheduler), `bot`
-(Telegram poller), `postgres`, `redis`. Beat schedules (all EAT):
+(Telegram poller), `postgres`, `redis`.
 
-- `sync_current_season` daily at 03:30 — incremental baseline.
-- `sync_current_season` hourly on Sat + Sun — race-weekend catcher so
-  results land within ~1h of the chequered flag.
+Beat schedules live in the DB (django-celery-beat). Initial entries are
+seeded on first migrate via a `post_migrate` signal in
+[seasons/schedules.py](seasons/schedules.py) and are editable at
+`/admin/django_celery_beat/`:
+
+- `sync-current-season-daily` — 03:30 EAT, incremental baseline.
+- `sync-current-season-race-weekend` — hourly Sat + Sun EAT, race catcher.
+
+Task history (status, args, return value, traceback) lives at
+`/admin/django_celery_results/taskresult/`.
 
 The full historical backfill is a one-shot, run once per environment after
 the first deploy (see *Quickstart*). A named volume `fastf1cache` is

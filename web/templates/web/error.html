@@ -1,0 +1,25 @@
+{% extends "web/base.html" %}
+{% block title %}{{ status_code }} · Pitwall{% endblock %}
+{% block meta_description %}Pitwall could not complete this request. Try the home page, the Telegram bot, or contribute a fix on GitHub.{% endblock %}
+{% block content %}
+  <section class="error-page" aria-labelledby="error-title">
+    <div class="error-code">{{ status_code }}</div>
+    <div class="error-panel">
+      <p class="card-title">Pitwall status</p>
+      <h1 id="error-title">{{ title }}</h1>
+      <p class="subhead">{{ message }}</p>
+      <p>{{ detail }}</p>
+      <p>
+        This is a first-time fun project, mostly updated on weekends, holidays,
+        or when boredom turns into code. It may occasionally miss an apex.
+        Contributions, bug reports, and tidy fixes are welcome on
+        <a href="https://github.com/achingachris/f1-pitwall" target="_blank" rel="noopener">GitHub</a>.
+      </p>
+      <div class="error-actions">
+        <a class="btn btn-primary" href="{% url 'web:landing' %}">Go home</a>
+        <a class="btn" href="{% url 'web:about' %}">About Pitwall</a>
+        <a class="btn" href="https://t.me/pitwallBycdc_bot" target="_blank" rel="noopener noreferrer">Telegram bot</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}

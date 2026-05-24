@@ -28,7 +28,6 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
       FASTF1_CACHE_DIR: /cache/fastf1
       LOG_DIR: /var/log/pitwall
       RUN_BOT_WITH_SERVER: "false"
@@ -54,7 +53,6 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
       FASTF1_CACHE_DIR: /cache/fastf1
       LOG_DIR: /var/log/pitwall
       RUN_BOT_WITH_SERVER: "false"
@@ -79,7 +77,6 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
       LOG_DIR: /var/log/pitwall
       RUN_BOT_WITH_SERVER: "false"
     depends_on:
@@ -89,7 +86,10 @@ services:
         condition: service_healthy
     volumes:
       - logs:/var/log/pitwall
-    command: celery -A config beat -l info
+    # DatabaseScheduler reads PeriodicTask rows from django-celery-beat —
+    # schedules are editable at /admin/django_celery_beat/. Initial entries
+    # are seeded by seasons.schedules.seed_schedules on post_migrate.
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
 
   bot:
     build: .
@@ -98,7 +98,6 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
       FASTF1_CACHE_DIR: /cache/fastf1
       LOG_DIR: /var/log/pitwall
       RUN_BOT_WITH_SERVER: "false"

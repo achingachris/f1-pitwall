@@ -21,6 +21,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_htmx",
+    "django_celery_beat",
+    "django_celery_results",
     "app.apps.AppConfig",
     "seasons.apps.SeasonsConfig",
     "competitors.apps.CompetitorsConfig",
@@ -113,14 +115,18 @@ if REDIS_URL:
 else:
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
-# Celery.
+# Celery. Broker stays Redis; results land in the Django DB via
+# django-celery-results so they're browsable at /admin/django_celery_results/.
+# Schedules are owned by django-celery-beat (DB-backed scheduler) — see
+# seasons.schedules.seed_schedules for the post_migrate seeder.
 CELERY_BROKER_URL = config("CELERY_BROKER_URL", default=REDIS_URL or "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = config(
-    "CELERY_RESULT_BACKEND", default=REDIS_URL or "redis://localhost:6379/1"
-)
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="django-db")
+CELERY_CACHE_BACKEND = "default"
+CELERY_RESULT_EXTENDED = True  # store task name + args/kwargs in TaskResult rows
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 60 * 60  # 1h hard cap for backfill chunks
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # jolpica client.
 JOLPICA_BASE = config("JOLPICA_BASE", default="https://api.jolpi.ca/ergast/f1")

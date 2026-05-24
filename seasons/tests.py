@@ -104,6 +104,34 @@ class SyncYearCommandTests(TestCase):
         delay.assert_called_once_with(2025, skip_results=True)
 
 
+class BeatScheduleSeederTests(TestCase):
+    def test_seed_schedules_is_idempotent(self):
+        """post_migrate fires on every `migrate`; seeding twice must not
+        duplicate rows or overwrite admin-edited cron values."""
+        from django_celery_beat.models import PeriodicTask
+
+        from seasons.schedules import _SCHEDULES, seed_schedules
+
+        # Initial seed (post_migrate already fired during test DB setup, so
+        # the rows exist — this call should be a no-op).
+        seed_schedules()
+        first_count = PeriodicTask.objects.filter(name__in=[s["name"] for s in _SCHEDULES]).count()
+        self.assertEqual(first_count, len(_SCHEDULES))
+
+        # Simulate an admin edit; re-seeding must not revert it.
+        task = PeriodicTask.objects.get(name="sync-current-season-daily")
+        task.enabled = False
+        task.save()
+
+        seed_schedules()
+        task.refresh_from_db()
+        self.assertFalse(task.enabled)
+        self.assertEqual(
+            PeriodicTask.objects.filter(name__in=[s["name"] for s in _SCHEDULES]).count(),
+            len(_SCHEDULES),
+        )
+
+
 class CalendarServiceTests(TestCase):
     """Cover the three states the landing hero card can show:
     a weekend in progress, a weekend coming up, and an empty calendar."""
