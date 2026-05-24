@@ -38,8 +38,18 @@ pip install -r requirements.txt
 cp .env.example .env                    # leave POSTGRES_HOST empty to use sqlite
 
 python manage.py migrate
-python manage.py sync_year 2025         # pulls one season from jolpica
 python manage.py runserver
+```
+
+All sync commands (`sync_year`, `backfill_history`, `sync_session`) enqueue
+to Celery — they do not execute in-process. For local dev that means you
+also need Redis + a worker:
+
+```bash
+docker compose up -d redis              # or run redis-server locally
+celery -A config worker -l info --concurrency 1     # in a second terminal
+
+python manage.py sync_year 2025         # queues; check the worker terminal for progress
 ```
 
 Open <http://localhost:8000>.
@@ -51,10 +61,12 @@ to be jolpica-synced first; 2018+ only):
 python manage.py sync_session 2025 1 race
 ```
 
-For a full historical backfill (~10–15 minutes at the rate-safe pace):
+For a full historical backfill (~10–15 minutes at the rate-safe pace).
+`--reverse` syncs the current season first and walks back to 1950, so the
+public site gets useful data immediately while older years stream in:
 
 ```bash
-python manage.py backfill_history --start 1950
+python manage.py backfill_history --reverse
 ```
 
 ## Docker (prod-like)
@@ -66,10 +78,16 @@ docker compose exec web python manage.py sync_year $(date +%Y)
 ```
 
 Services: `web` (gunicorn), `worker` (Celery), `beat` (scheduler), `bot`
-(Telegram poller), `postgres`, `redis`. Beat runs `sync_current_season`
-daily at 03:30 EAT. A named volume `fastf1cache` is mounted on `web`,
-`worker`, and `bot` so the multi-MB FastF1 Parquet cache persists across
-container rebuilds.
+(Telegram poller), `postgres`, `redis`. Beat schedules (all EAT):
+
+- `sync_current_season` daily at 03:30 — incremental baseline.
+- `sync_current_season` hourly on Sat + Sun — race-weekend catcher so
+  results land within ~1h of the chequered flag.
+
+The full historical backfill is a one-shot, run once per environment after
+the first deploy (see *Quickstart*). A named volume `fastf1cache` is
+mounted on `web`, `worker`, and `bot` so the multi-MB FastF1 Parquet cache
+persists across container rebuilds.
 
 ## Telegram bot
 

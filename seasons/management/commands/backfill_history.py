@@ -6,7 +6,9 @@ from seasons.tasks import backfill_history
 
 
 class Command(BaseCommand):
-    help = "Backfill historical seasons. Runs synchronously by default."
+    help = (
+        "Enqueue a Celery task to backfill historical seasons. Requires a " "running Celery worker."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument("--start", type=int, default=1950)
@@ -18,16 +20,24 @@ class Command(BaseCommand):
             "Use this to resume a partial backfill without re-hitting jolpica.",
         )
         parser.add_argument(
-            "--async",
-            dest="run_async",
+            "--reverse",
             action="store_true",
-            help="Enqueue via Celery instead of running in-process.",
+            help="Iterate newest year first (end → start) instead of oldest first.",
         )
 
-    def handle(self, *args, start: int, end: int, skip_existing: bool, run_async: bool, **opts):
-        if run_async:
-            backfill_history.delay(start, end, skip_existing=skip_existing)
-            self.stdout.write(self.style.SUCCESS(f"queued backfill {start}..{end}"))
-        else:
-            result = backfill_history(start, end, skip_existing=skip_existing)
-            self.stdout.write(self.style.SUCCESS(result))
+    def handle(
+        self,
+        *args,
+        start: int,
+        end: int,
+        skip_existing: bool,
+        reverse: bool,
+        **opts,
+    ):
+        result = backfill_history.delay(start, end, skip_existing=skip_existing, reverse=reverse)
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"queued backfill_history({start}..{end}, skip_existing={skip_existing}, "
+                f"reverse={reverse}) → {result.id}"
+            )
+        )

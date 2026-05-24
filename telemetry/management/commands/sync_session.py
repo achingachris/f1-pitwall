@@ -1,16 +1,15 @@
 from django.core.management.base import BaseCommand, CommandError
 
 from seasons.models import Round
-from seasons.services.cache import bump_data_version
 from telemetry.models import Session
-from telemetry.services.fastf1_client import FastF1Unavailable
-from telemetry.services.sync import sync_session
+from telemetry.tasks import sync_session_task
 
 
 class Command(BaseCommand):
     help = (
-        "Pull telemetry (SessionStat + Lap + Stint) for one (year, round, kind) "
-        "session from FastF1. Requires the round to already exist via `sync_year`."
+        "Enqueue a Celery task to pull telemetry (SessionStat + Lap + Stint) "
+        "for one (year, round, kind) session from FastF1. Requires the round "
+        "to already exist via `sync_year`, and a running Celery worker."
     )
 
     def add_arguments(self, parser):
@@ -23,21 +22,10 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, year: int, round: int, kind: str, **opts):
-        rnd = Round.objects.filter(season__year=year, number=round).first()
-        if rnd is None:
+        if not Round.objects.filter(season__year=year, number=round).exists():
             raise CommandError(f"No Round for {year} R{round}. Run `sync_year {year}` first.")
 
-        self.stdout.write(f"→ FastF1 {year} R{round} {kind}")
-        try:
-            counts = sync_session(rnd, kind)
-        except FastF1Unavailable as e:
-            raise CommandError(str(e)) from e
-
-        if any(counts.values()):
-            bump_data_version()
+        result = sync_session_task.delay(year, round, kind)
         self.stdout.write(
-            self.style.SUCCESS(
-                f"✓ stats={counts['stats']} laps={counts['laps']} "
-                f"stints={counts['stints']} deleted={counts.get('deleted', 0)}"
-            )
+            self.style.SUCCESS(f"queued sync_session_task({year}, {round}, {kind}) → {result.id}")
         )

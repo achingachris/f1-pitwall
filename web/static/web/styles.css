@@ -198,6 +198,13 @@ code {
   color: var(--nav-hover-color);
 }
 
+.header-actions {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
 .theme-toggle {
   align-items: center;
   background: var(--surface-1);
@@ -226,6 +233,58 @@ html[data-theme="dark"] .theme-toggle-option[data-theme-label="dark"] {
   color: var(--accent-fg);
 }
 
+.nav-toggle {
+  align-items: center;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--fg);
+  cursor: pointer;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  height: 34px;
+  justify-content: center;
+  padding: 0;
+  width: 38px;
+}
+
+.nav-toggle:hover {
+  background: var(--surface-2);
+  border-color: var(--teal);
+}
+
+.nav-toggle-bar {
+  background: currentColor;
+  border-radius: 999px;
+  display: block;
+  height: 2px;
+  transition: transform 140ms ease, opacity 140ms ease;
+  width: 16px;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle-bar:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 main {
   padding: 34px 0 64px;
 }
@@ -236,6 +295,45 @@ main {
   font-size: 13px;
   margin-top: 60px;
   padding: 18px 0;
+}
+
+.telegram-fab {
+  align-items: center;
+  background: #26afa6;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 999px;
+  bottom: 22px;
+  box-shadow: 0 16px 34px rgba(2, 24, 48, 0.18);
+  color: #ffffff;
+  display: inline-flex;
+  height: 54px;
+  justify-content: center;
+  position: fixed;
+  right: 22px;
+  transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+  width: 54px;
+  z-index: 30;
+}
+
+.telegram-fab:hover {
+  background: #34c2b6;
+  box-shadow: 0 18px 38px rgba(2, 24, 48, 0.24);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.telegram-fab:focus-visible,
+.nav-toggle:focus-visible,
+.theme-toggle:focus-visible {
+  outline: 3px solid rgba(38, 175, 166, 0.34);
+  outline-offset: 3px;
+}
+
+.telegram-fab svg {
+  display: block;
+  fill: currentColor;
+  height: 26px;
+  width: 26px;
 }
 
 h1,
@@ -764,12 +862,41 @@ p {
 
 @media (max-width: 680px) {
   .site-header .container {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    display: grid;
+    gap: 10px 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .nav {
+    background: var(--solid);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    display: none;
+    flex-direction: column;
+    grid-column: 1 / -1;
+    gap: 4px;
     justify-content: flex-start;
+    padding: 6px;
+    width: 100%;
+  }
+
+  .nav.nav-open {
+    display: flex;
+  }
+
+  .nav a {
+    padding: 10px 12px;
+    width: 100%;
+  }
+
+  .header-actions {
+    justify-self: end;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
   }
 
   h1 {
@@ -778,6 +905,13 @@ p {
 
   .modal-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .telegram-fab {
+    bottom: 16px;
+    height: 50px;
+    right: 16px;
+    width: 50px;
   }
 }
 

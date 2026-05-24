@@ -66,7 +66,11 @@ services:
     volumes:
       - fastf1cache:/cache/fastf1
       - logs:/var/log/pitwall
-    command: celery -A config worker -l info --concurrency 2
+    # concurrency=1 is load-bearing: jolpica's rate-limiter is in-memory per
+    # process, so two parallel sync tasks would each think they own the full
+    # 480/hr budget and collectively trip 429s. All sync work routes through
+    # this single worker, so serializing is the safest choice.
+    command: celery -A config worker -l info --concurrency 1
 
   beat:
     build: .

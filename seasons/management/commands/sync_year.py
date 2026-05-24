@@ -1,18 +1,13 @@
 from django.core.management.base import BaseCommand
-from django.utils.timezone import now
 
-from seasons.models import Round, Season
-from seasons.services.cache import bump_data_version
-from seasons.services.sync import (
-    sync_qualifying,
-    sync_results,
-    sync_schedule,
-    sync_standings,
-)
+from seasons.tasks import sync_year
 
 
 class Command(BaseCommand):
-    help = "Sync schedule, results, qualifying, and standings for a given season."
+    help = (
+        "Enqueue a Celery task to sync schedule, results, qualifying, and "
+        "standings for a given season. Requires a running Celery worker."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument("year", type=int)
@@ -23,17 +18,9 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, year: int, skip_results: bool, **opts):
-        self.stdout.write(f"→ schedule {year}")
-        sync_schedule(year)
-        if not skip_results:
-            for rnd in Round.objects.filter(season__year=year).order_by("number"):
-                self.stdout.write(f"  • R{rnd.number} {rnd.name}")
-                sync_results(rnd, "race")
-                if rnd.has_sprint:
-                    sync_results(rnd, "sprint")
-                sync_qualifying(rnd)
-        self.stdout.write("→ standings")
-        sync_standings(year)
-        Season.objects.filter(year=year).update(last_synced=now())
-        bump_data_version()
-        self.stdout.write(self.style.SUCCESS(f"✓ {year} synced"))
+        result = sync_year.delay(year, skip_results=skip_results)
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"queued sync_year({year}, skip_results={skip_results}) → {result.id}"
+            )
+        )

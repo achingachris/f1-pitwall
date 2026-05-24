@@ -95,16 +95,13 @@ class JolpicaClientTests(TestCase):
 
 
 class SyncYearCommandTests(TestCase):
-    def test_sync_year_bumps_cache_version(self):
-        cache.delete("f1:ver")
-
-        with (
-            mock.patch("seasons.management.commands.sync_year.sync_schedule"),
-            mock.patch("seasons.management.commands.sync_year.sync_standings"),
-        ):
+    def test_sync_year_command_enqueues_celery_task(self):
+        """The command must enqueue, never execute in-process. Running sync
+        in the management-command shell would defeat the worker-as-single-
+        jolpica-caller invariant that makes the in-memory rate limiter safe."""
+        with mock.patch("seasons.management.commands.sync_year.sync_year.delay") as delay:
             call_command("sync_year", 2025, "--skip-results")
-
-        self.assertIsNotNone(cache.get("f1:ver"))
+        delay.assert_called_once_with(2025, skip_results=True)
 
 
 class CalendarServiceTests(TestCase):

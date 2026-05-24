@@ -5,7 +5,25 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light only">
   <meta name="theme-color" content="#ffffff">
+  {% static 'web/img/pitwall-og.png' as og_image_path %}
   <title>{% block title %}Pitwall{% if year %} · {{ year }}{% endif %}{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Pitwall tracks Formula 1 standings, title contenders, race results, fastest laps, top speeds, and telemetry-backed stint insights.{% endblock %}">
+  <link rel="canonical" href="{{ request.build_absolute_uri }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Pitwall">
+  <meta property="og:title" content="{% block og_title %}Pitwall{% if year %} · {{ year }}{% endif %}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Formula 1 standings, contenders, race results, fastest laps, top speeds, and telemetry-backed stint insights.{% endblock %}">
+  <meta property="og:url" content="{{ request.build_absolute_uri }}">
+  <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ og_image_path }}">
+  <meta property="og:image:secure_url" content="{{ request.scheme }}://{{ request.get_host }}{{ og_image_path }}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Pitwall logo with Formula 1 data dashboard branding">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{% block twitter_title %}Pitwall{% if year %} · {{ year }}{% endif %}{% endblock %}">
+  <meta name="twitter:description" content="{% block twitter_description %}Formula 1 standings, contenders, race results, fastest laps, top speeds, and telemetry-backed stint insights.{% endblock %}">
+  <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ og_image_path }}">
   <link rel="icon" type="image/png" href="{% static 'web/img/favicon.png' %}">
   <link rel="apple-touch-icon" href="{% static 'web/img/favicon.png' %}">
   <script>
@@ -32,7 +50,7 @@
         <span class="brand-mark"><img src="{% static 'web/img/pitwall-logo.png' %}" alt="" width="40" height="40"></span>
         <span class="brand-text">Pitwall</span>
       </a>
-      <nav class="nav">
+      <nav class="nav" id="site-nav" aria-label="Primary">
         {% if year %}
           <a href="{% url 'web:season' year %}">{{ year }}</a>
           <a href="{% url 'web:driver_standings' year %}">Standings</a>
@@ -41,10 +59,20 @@
           <a href="{% url 'web:funstats' year %}">Fun stats</a>
         {% endif %}
       </nav>
-      <button class="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false">
-        <span class="theme-toggle-option" data-theme-label="light">Light</span>
-        <span class="theme-toggle-option" data-theme-label="dark">Dark</span>
-      </button>
+      <div class="header-actions">
+        <button class="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false">
+          <span class="theme-toggle-option" data-theme-label="light">Light</span>
+          <span class="theme-toggle-option" data-theme-label="dark">Dark</span>
+        </button>
+        {% if year %}
+          <button class="nav-toggle" type="button" aria-controls="site-nav" aria-expanded="false">
+            <span class="nav-toggle-bar"></span>
+            <span class="nav-toggle-bar"></span>
+            <span class="nav-toggle-bar"></span>
+            <span class="visually-hidden">Menu</span>
+          </button>
+        {% endif %}
+      </div>
     </div>
   </header>
   <main>
@@ -60,6 +88,12 @@
     </div>
   </footer>
 
+  <a class="telegram-fab" href="https://t.me/pitwallBycdc_bot" target="_blank" rel="noopener noreferrer" aria-label="Open Pitwall Telegram bot" title="Open Pitwall Telegram bot">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M21.9 4.7 18.6 20c-.2 1.1-.9 1.4-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.2L6 13.5 1.1 12c-1.1-.3-1.1-1.1.2-1.6L20.4 3c.9-.3 1.7.2 1.5 1.7z"></path>
+    </svg>
+  </a>
+
   <div id="modal-root"></div>
   <script>
     (function () {
@@ -67,6 +101,8 @@
       var metaTheme = document.querySelector('meta[name="theme-color"]');
       var metaScheme = document.querySelector('meta[name="color-scheme"]');
       var toggle = document.querySelector('.theme-toggle');
+      var navToggle = document.querySelector('.nav-toggle');
+      var siteNav = document.getElementById('site-nav');
 
       function applyTheme(theme) {
         var selected = theme === 'dark' ? 'dark' : 'light';
@@ -90,6 +126,21 @@
       if (toggle) {
         toggle.addEventListener('click', function () {
           applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
+        });
+      }
+
+      if (navToggle && siteNav) {
+        navToggle.addEventListener('click', function () {
+          var expanded = navToggle.getAttribute('aria-expanded') === 'true';
+          navToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+          siteNav.classList.toggle('nav-open', !expanded);
+        });
+
+        siteNav.addEventListener('click', function (event) {
+          if (event.target.tagName === 'A') {
+            navToggle.setAttribute('aria-expanded', 'false');
+            siteNav.classList.remove('nav-open');
+          }
         });
       }
     })();

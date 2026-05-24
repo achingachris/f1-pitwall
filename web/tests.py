@@ -7,6 +7,43 @@ from web.services import wiki
 from web.templatetags.flags import flag
 
 
+class SeoMetaTests(TestCase):
+    def test_about_page_includes_open_graph_and_twitter_image_metadata(self):
+        from django.test import Client
+
+        response = Client().get("/about/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'property="og:title"')
+        self.assertContains(response, 'property="og:image"')
+        self.assertContains(response, 'property="og:image:width" content="1200"')
+        self.assertContains(response, 'property="og:image:height" content="630"')
+        self.assertContains(response, "/static/web/img/pitwall-og.png")
+        self.assertContains(response, 'name="twitter:card" content="summary_large_image"')
+
+    def test_base_layout_includes_telegram_bot_link(self):
+        from django.test import Client
+
+        response = Client().get("/about/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'href="https://t.me/pitwallBycdc_bot"')
+        self.assertContains(response, 'aria-label="Open Pitwall Telegram bot"')
+
+
+class NavigationTests(TestCase):
+    def test_landing_page_includes_mobile_navigation_toggle(self):
+        from django.test import Client
+
+        response = Client().get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="site-nav"')
+        self.assertContains(response, 'class="nav-toggle"')
+        self.assertContains(response, 'aria-controls="site-nav"')
+        self.assertContains(response, 'aria-expanded="false"')
+
+
 class NationalityTests(TestCase):
     def test_known_demonym_maps_to_flag(self):
         self.assertEqual(nationalities.country_code("British"), "GB")
