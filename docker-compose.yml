@@ -38,7 +38,7 @@ services:
       redis:
         condition: service_healthy
     ports:
-      - "8000:8000"
+      - "8003:8000"
     volumes:
       - fastf1cache:/cache/fastf1
       - logs:/var/log/pitwall
