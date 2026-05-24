@@ -95,6 +95,15 @@ def server_error(request):
 
 def landing(request):
     year = date.today().year
+    if not Standing.objects.filter(round__season__year=year, kind="driver").exists():
+        fallback_year = (
+            Season.objects.filter(rounds__standings__kind="driver")
+            .order_by("-year")
+            .values_list("year", flat=True)
+            .first()
+        )
+        if fallback_year:
+            year = fallback_year
     seasons = list(Season.objects.values_list("year", flat=True)[:30])
 
     ver = _cache_ver()
