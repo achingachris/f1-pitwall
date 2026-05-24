@@ -423,3 +423,37 @@ class SyncRecentTelemetryTaskTests(TestCase):
             result = tasks.sync_recent_telemetry()
         delay.assert_not_called()
         self.assertIn("queued 0", result)
+
+
+class BackfillTelemetryTaskTests(TestCase):
+    def test_walks_every_completed_round_across_years_newest_first(self):
+        from django.utils.timezone import now
+
+        from telemetry import tasks
+
+        # Two years; one round per year. Pre-2018 round is filtered out.
+        for year, race_days_ago in [(2017, 30), (2018, 60), (2019, 90)]:
+            season, _ = Season.objects.get_or_create(year=year)
+            circuit, _ = Circuit.objects.get_or_create(
+                ref=f"c{year}", defaults={"name": f"C{year}"}
+            )
+            Round.objects.create(
+                season=season,
+                number=1,
+                name=f"R{year}",
+                circuit=circuit,
+                date=date.today() - timedelta(days=race_days_ago),
+                race_at=now() - timedelta(days=race_days_ago),
+            )
+
+        with mock.patch("telemetry.tasks.sync_session_task.delay") as delay:
+            result = tasks.backfill_telemetry(start_year=2018, end_year=2019)
+
+        years_queued = [c.args[0] for c in delay.call_args_list]
+        self.assertNotIn(2017, years_queued)
+        # Newest year fires first — important so the freshest data lands
+        # early if the queue gets interrupted.
+        self.assertEqual(years_queued[0], 2019)
+        # 2 years × 1 round × 2 kinds (race + q, no sprint) = 4 tasks.
+        self.assertEqual(len(years_queued), 4)
+        self.assertIn("queued 4", result)

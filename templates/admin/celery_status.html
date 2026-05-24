@@ -1,0 +1,136 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  .celery-grid { display: grid; gap: 1.5em; margin-top: 1em; }
+  .celery-card { background: var(--body-bg, #fff); border: 1px solid var(--border-color, #ddd); border-radius: 4px; padding: 1em 1.25em; }
+  .celery-card h2 { margin-top: 0; font-size: 1.1em; }
+  .celery-card .count { font-size: 0.8em; color: var(--body-quiet-color, #666); margin-left: 0.5em; }
+  .celery-card table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+  .celery-card th, .celery-card td { text-align: left; padding: 0.35em 0.5em; border-bottom: 1px solid var(--hairline-color, #eee); vertical-align: top; }
+  .celery-card th { font-weight: 600; color: var(--body-quiet-color, #666); }
+  .celery-card code { background: var(--darkened-bg, #f5f5f5); padding: 0.1em 0.4em; border-radius: 3px; font-size: 0.9em; }
+  .celery-empty { color: var(--body-quiet-color, #666); font-style: italic; }
+  .celery-banner { background: #fff4e5; border: 1px solid #ffb74d; padding: 0.75em 1em; border-radius: 4px; margin-bottom: 1em; }
+  .celery-actions { margin: 1em 0; display: flex; gap: 1em; flex-wrap: wrap; }
+  .celery-actions a { background: var(--button-bg, #79aec8); color: var(--button-fg, #fff); padding: 0.5em 1em; border-radius: 4px; text-decoration: none; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a> &rsaquo; Celery — live status
+</div>
+{% endblock %}
+
+{% block content %}
+
+<div class="celery-actions">
+  <a href="{% url 'admin:django_celery_beat_periodictask_changelist' %}">Edit / run periodic tasks</a>
+  <a href="{% url 'admin:django_celery_results_taskresult_changelist' %}">Task history (results)</a>
+  <a href="?">Refresh</a>
+</div>
+
+{% if no_workers %}
+<div class="celery-banner">
+  <strong>No Celery workers responded.</strong> Either no worker is running,
+  or the broker (Redis) is unreachable from the web container. Check
+  <code>docker compose ps worker</code> and <code>docker compose logs worker</code>.
+</div>
+{% endif %}
+
+<div class="celery-grid">
+
+  <div class="celery-card">
+    <h2>Workers <span class="count">{{ workers|length }}</span></h2>
+    {% if workers %}
+      <table>
+        <thead><tr><th>Worker</th><th>Pool</th><th>Processes</th><th>Total tasks</th></tr></thead>
+        <tbody>
+          {% for w in workers %}
+            <tr>
+              <td><code>{{ w.name }}</code></td>
+              <td>{{ w.pool }}</td>
+              <td>{{ w.processes|length }}</td>
+              <td>
+                {% for k, v in w.total.items %}
+                  <div><code>{{ k }}</code>: {{ v }}</div>
+                {% empty %}
+                  <span class="celery-empty">none yet</span>
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="celery-empty">No workers reporting.</p>
+    {% endif %}
+  </div>
+
+  <div class="celery-card">
+    <h2>Active <span class="count">{{ active|length }} executing now</span></h2>
+    {% if active %}
+      <table>
+        <thead><tr><th>Task</th><th>Args / kwargs</th><th>Started</th><th>Worker</th></tr></thead>
+        <tbody>
+          {% for t in active %}
+            <tr>
+              <td><code>{{ t.name }}</code><br><small>{{ t.id|slice:":8" }}…</small></td>
+              <td><code>{{ t.args }}</code> <code>{{ t.kwargs }}</code></td>
+              <td>{% if t._started_at %}{{ t._started_at|date:"H:i:s" }}{% else %}—{% endif %}</td>
+              <td><small>{{ t._worker }}</small></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="celery-empty">Nothing executing right now.</p>
+    {% endif %}
+  </div>
+
+  <div class="celery-card">
+    <h2>Queued <span class="count">{{ reserved|length }} waiting for a worker slot</span></h2>
+    {% if reserved %}
+      <table>
+        <thead><tr><th>Task</th><th>Args / kwargs</th><th>Worker</th></tr></thead>
+        <tbody>
+          {% for t in reserved %}
+            <tr>
+              <td><code>{{ t.name }}</code><br><small>{{ t.id|slice:":8" }}…</small></td>
+              <td><code>{{ t.args }}</code> <code>{{ t.kwargs }}</code></td>
+              <td><small>{{ t._worker }}</small></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="celery-empty">Queue empty.</p>
+    {% endif %}
+  </div>
+
+  <div class="celery-card">
+    <h2>Scheduled <span class="count">{{ scheduled|length }} with an ETA</span></h2>
+    {% if scheduled %}
+      <table>
+        <thead><tr><th>Task</th><th>ETA</th><th>Worker</th></tr></thead>
+        <tbody>
+          {% for t in scheduled %}
+            <tr>
+              <td><code>{{ t.request.name }}</code></td>
+              <td>{{ t.eta }}</td>
+              <td><small>{{ t._worker }}</small></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="celery-empty">Nothing on the ETA queue.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+{% endblock %}

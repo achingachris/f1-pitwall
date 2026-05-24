@@ -1,0 +1,11 @@
+{% extends "admin/index.html" %}
+
+{% block content %}
+<div style="background: var(--darkened-bg, #f5f5f5); border-left: 4px solid var(--primary, #79aec8); padding: 0.75em 1em; margin-bottom: 1.5em; border-radius: 4px;">
+  <strong>Celery</strong> —
+  <a href="{% url 'admin:celery-status' %}">Live status (active / queued tasks)</a> ·
+  <a href="{% url 'admin:django_celery_beat_periodictask_changelist' %}">Schedules</a> ·
+  <a href="{% url 'admin:django_celery_results_taskresult_changelist' %}">Task history</a>
+</div>
+{{ block.super }}
+{% endblock %}

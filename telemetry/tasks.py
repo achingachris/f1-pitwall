@@ -69,3 +69,34 @@ def sync_recent_telemetry(rounds_back: int = 2) -> str:
             queued += 1
 
     return f"telemetry: queued {queued} session syncs across {len(recent)} round(s) in {year}"
+
+
+@shared_task
+def backfill_telemetry(start_year: int = _FASTF1_MIN_YEAR, end_year: int | None = None) -> str:
+    """One-shot: fan out sync_session_task for every completed round across
+    `start_year..end_year`. Walks newest-first so the freshest data lands
+    early — if the queue gets interrupted, the most-valuable rounds are
+    already done.
+
+    Each (round, kind) is idempotent end-to-end. Pre-2018 years are clamped
+    out because FastF1 has no coverage."""
+    end_year = end_year or date.today().year
+    start_year = max(start_year, _FASTF1_MIN_YEAR)
+
+    queued = 0
+    rounds_seen = 0
+    for year in range(end_year, start_year - 1, -1):
+        rounds = Round.objects.filter(season__year=year, race_at__lte=now()).order_by("-number")
+        for rnd in rounds:
+            rounds_seen += 1
+            kinds = ["race", "q"]
+            if rnd.has_sprint:
+                kinds += ["sprint", "sq"]
+            for kind in kinds:
+                sync_session_task.delay(year, rnd.number, kind)
+                queued += 1
+
+    return (
+        f"telemetry backfill: queued {queued} session syncs across "
+        f"{rounds_seen} round(s) in {start_year}..{end_year}"
+    )
