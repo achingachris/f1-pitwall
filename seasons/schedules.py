@@ -24,6 +24,15 @@ _SCHEDULES = [
         "cron": {"minute": "0", "hour": "*", "day_of_week": "sat,sun"},
         "description": "Race-weekend catcher — hourly Sat + Sun EAT.",
     },
+    {
+        "name": "sync-recent-telemetry-race-weekend",
+        "task": "telemetry.tasks.sync_recent_telemetry",
+        # :30 offset gives the on-the-hour jolpica sync time to create the
+        # Round rows that telemetry depends on (drivers looked up by code).
+        "cron": {"minute": "30", "hour": "*", "day_of_week": "sat,sun"},
+        "description": "FastF1 telemetry catcher — hourly Sat + Sun EAT, "
+        "half-hour offset from the jolpica sync.",
+    },
 ]
 
 

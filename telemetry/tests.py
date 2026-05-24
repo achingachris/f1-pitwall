@@ -352,3 +352,74 @@ class HelperTests(TestCase):
         self.assertIsNone(sync_module._seconds(None))
         self.assertIsNone(sync_module._seconds(float("nan")))
         self.assertAlmostEqual(sync_module._seconds(timedelta(seconds=12.5)), 12.5)
+
+
+class SyncRecentTelemetryTaskTests(TestCase):
+    """Cover the scheduled telemetry fan-out: which (round, kind) pairs end
+    up queued for the latest N completed rounds."""
+
+    def _make_round(self, year, number, *, race_days_ago, has_sprint=False):
+        from django.utils.timezone import now
+
+        season, _ = Season.objects.get_or_create(year=year)
+        circuit, _ = Circuit.objects.get_or_create(
+            ref=f"c{number}", defaults={"name": f"C{number}"}
+        )
+        return Round.objects.create(
+            season=season,
+            number=number,
+            name=f"R{number}",
+            circuit=circuit,
+            date=date.today() - timedelta(days=race_days_ago),
+            race_at=now() - timedelta(days=race_days_ago),
+            has_sprint=has_sprint,
+        )
+
+    def test_skips_pre_2018_year(self):
+        from telemetry import tasks
+
+        with (
+            mock.patch("telemetry.tasks.date") as fake_date,
+            mock.patch("telemetry.tasks.sync_session_task.delay") as delay,
+        ):
+            fake_date.today.return_value = date(2017, 6, 1)
+            result = tasks.sync_recent_telemetry()
+        delay.assert_not_called()
+        self.assertIn("skipped", result)
+
+    def test_fans_out_per_session_for_latest_rounds(self):
+        from telemetry import tasks
+
+        year = date.today().year
+        oldest = self._make_round(year, 1, race_days_ago=30)
+        middle = self._make_round(year, 2, race_days_ago=14, has_sprint=True)
+        latest = self._make_round(year, 3, race_days_ago=2)
+
+        with mock.patch("telemetry.tasks.sync_session_task.delay") as delay:
+            result = tasks.sync_recent_telemetry(rounds_back=2)
+
+        queued = {(c.args[1], c.args[2]) for c in delay.call_args_list}
+        self.assertEqual(
+            queued,
+            {
+                (latest.number, "race"),
+                (latest.number, "q"),
+                (middle.number, "race"),
+                (middle.number, "q"),
+                (middle.number, "sprint"),
+                (middle.number, "sq"),
+            },
+        )
+        self.assertNotIn(oldest.number, {c.args[1] for c in delay.call_args_list})
+        self.assertIn("queued 6", result)
+
+    def test_skips_future_rounds(self):
+        from telemetry import tasks
+
+        year = date.today().year
+        self._make_round(year, 1, race_days_ago=-7)
+
+        with mock.patch("telemetry.tasks.sync_session_task.delay") as delay:
+            result = tasks.sync_recent_telemetry()
+        delay.assert_not_called()
+        self.assertIn("queued 0", result)

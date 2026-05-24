@@ -19,9 +19,7 @@ if _csrf_trusted:
     CSRF_TRUSTED_ORIGINS = _csrf_trusted
 elif not DEBUG:
     CSRF_TRUSTED_ORIGINS = [
-        f"https://{host}"
-        for host in ALLOWED_HOSTS
-        if host not in ("localhost", "127.0.0.1")
+        f"https://{host}" for host in ALLOWED_HOSTS if host not in ("localhost", "127.0.0.1")
     ]
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

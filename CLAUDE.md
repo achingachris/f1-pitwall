@@ -105,11 +105,14 @@ Run `python -m black . && python -m isort .` after any non-trivial edit.
    - Cache: FastF1's on-disk Parquet cache lives at `settings.FASTF1_CACHE_DIR`
      (`/cache/fastf1` under docker, `./.fastf1cache` locally). Mounted as a
      named volume on `web`, `worker`, and `bot`.
-   - Sync surface: `python manage.py sync_session <year> <round> <kind>` and
-     `telemetry.tasks.sync_session_task`. Triggered manually — no Beat entry
-     yet. **Run `sync_year` first** so the Driver/Constructor rows exist;
-     telemetry looks up drivers by their 3-letter `code` and skips unknown
-     ones rather than inventing rows.
+   - Sync surface: `python manage.py sync_session <year> <round> <kind>` for
+     a single session, `telemetry.tasks.sync_session_task` as the underlying
+     Celery task, and `telemetry.tasks.sync_recent_telemetry` (scheduled
+     hourly Sat + Sun at :30 EAT) which fans out per-session tasks for the
+     latest 2 completed rounds of the current season. **Run `sync_year`
+     first** so the Driver/Constructor rows exist; telemetry looks up
+     drivers by their 3-letter `code` and skips unknown ones rather than
+     inventing rows.
    - Telemetry syncs must prune stale `SessionStat`, `Lap`, and `Stint` rows
      when a corrected FastF1 response no longer contains them.
    - `fastf1` is imported **lazily** inside the client wrapper so the rest of
