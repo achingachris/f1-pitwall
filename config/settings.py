@@ -13,6 +13,21 @@ SECRET_KEY = config("DJANGO_SECRET_KEY", default="dev-insecure-key-change-me")
 DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
 ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
+# Behind nginx (or similar) in production — fixes admin login CSRF 403 on HTTPS.
+_csrf_trusted = config("DJANGO_CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+if _csrf_trusted:
+    CSRF_TRUSTED_ORIGINS = _csrf_trusted
+elif not DEBUG:
+    CSRF_TRUSTED_ORIGINS = [
+        f"https://{host}"
+        for host in ALLOWED_HOSTS
+        if host not in ("localhost", "127.0.0.1")
+    ]
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
