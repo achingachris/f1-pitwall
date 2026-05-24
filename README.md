@@ -106,6 +106,14 @@ webhook mode). The bot offers the same features as the web app:
 /improved   /funstats   /topspeeds /laps
 ```
 
+Admin-only sync commands (gated on `TELEGRAM_ADMIN_IDS`):
+
+```
+/sync                  — queue a current-season jolpica sync
+/syncrace <round>      — queue jolpica + FastF1 telemetry for one round (e.g. /syncrace 5)
+/synctelemetry         — queue FastF1 telemetry for the latest 2 rounds
+```
+
 Polling mode auto-starts with `runserver`; toggle with
 `RUN_BOT_WITH_SERVER=false` if you'd rather run the dedicated `bot`
 docker-compose worker instead. To refresh the `/` autocomplete menu after

@@ -64,6 +64,8 @@ COMMAND_SPEC: dict[str, tuple[list[str], str]] = {
     "laps": (["l"], "Race lap-by-lap stints (FastF1, e.g. /l 1)"),
     "help": ([], "Show this menu"),
     "sync": ([], "Trigger a current-season sync (admin only)"),
+    "syncrace": ([], "Sync one race (admin only, e.g. /syncrace 5)"),
+    "synctelemetry": ([], "Sync FastF1 telemetry for the last 2 rounds (admin only)"),
 }
 
 
@@ -302,7 +304,59 @@ def register(bot: telebot.TeleBot) -> None:
         from seasons.tasks import sync_current_season
 
         sync_current_season.delay()
-        bot.reply_to(message, "Sync queued.")
+        bot.reply_to(message, "🏎️ Pitwall — current-season sync queued.")
+
+    # /syncrace <N> (admin only) ----------------------------------------------
+    @bot.message_handler(commands=_cmds("syncrace"))
+    def _syncrace(message):
+        _log_message(message, "/syncrace")
+        if not _is_admin(message.from_user.id):
+            bot.reply_to(message, "Not authorised.")
+            return
+
+        from seasons.tasks import sync_current_season
+        from telemetry.tasks import sync_session_task
+
+        parts = (message.text or "").split()
+        rnd_num = next((int(p) for p in parts[1:] if p.isdigit()), None)
+        if rnd_num is None:
+            bot.reply_to(message, "Usage: /syncrace <round>  e.g. /syncrace 5")
+            return
+
+        year = formatters.current_year()
+        rnd = Round.objects.filter(season__year=year, number=rnd_num).first()
+        if rnd is None:
+            bot.reply_to(message, f"Round {rnd_num} not found in {year}.")
+            return
+
+        # Jolpica side: incremental current-season sync (idempotent — picks
+        # up this round's results/qualifying/standings).
+        sync_current_season.delay()
+
+        # FastF1 side: per-session fan-out for this specific round.
+        kinds = ["race", "q"]
+        if rnd.has_sprint:
+            kinds += ["sprint", "sq"]
+        for kind in kinds:
+            sync_session_task.delay(year, rnd_num, kind)
+
+        bot.reply_to(
+            message,
+            f"🏎️ Pitwall — queued sync for {year} R{rnd_num} "
+            f"({rnd.name}): jolpica + {len(kinds)} FastF1 session(s).",
+        )
+
+    # /synctelemetry (admin only) ---------------------------------------------
+    @bot.message_handler(commands=_cmds("synctelemetry"))
+    def _synctelemetry(message):
+        _log_message(message, "/synctelemetry")
+        if not _is_admin(message.from_user.id):
+            bot.reply_to(message, "Not authorised.")
+            return
+        from telemetry.tasks import sync_recent_telemetry
+
+        sync_recent_telemetry.delay()
+        bot.reply_to(message, "🏎️ Pitwall — telemetry sync queued (last 2 rounds).")
 
 
 def register_menu(bot: telebot.TeleBot) -> None:

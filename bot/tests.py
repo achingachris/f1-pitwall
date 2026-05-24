@@ -154,6 +154,120 @@ class EventLoggingTests(TestCase):
         self.assertIn("user=42", joined)
 
 
+def _registered_handlers(bot):
+    """Map command name → handler function, extracted from a TeleBot whose
+    `register()` has been called. Lets us invoke handlers directly without
+    going through the webhook + polling machinery."""
+    out = {}
+    for h in bot.message_handlers:
+        for cmd in h.get("filters", {}).get("commands", []) or []:
+            out[cmd] = h["function"]
+    return out
+
+
+@override_settings(TELEGRAM_ADMIN_IDS=[42], TELEGRAM_BOT_TOKEN="fake")
+class AdminSyncCommandTests(TestCase):
+    """Admin-only Telegram commands that enqueue sync tasks."""
+
+    def setUp(self):
+        import telebot
+
+        from bot import handlers
+
+        self.bot = telebot.TeleBot("123:fake-token", threaded=False)
+        handlers.register(self.bot)
+        self.handlers = _registered_handlers(self.bot)
+
+    def _make_message(self, *, user_id, text):
+        message = mock.Mock()
+        message.from_user = mock.Mock(id=user_id, username="t")
+        message.chat = mock.Mock(id=user_id)
+        message.text = text
+        return message
+
+    # /syncrace --------------------------------------------------------------
+
+    def test_syncrace_rejects_non_admin(self):
+        with (
+            mock.patch("seasons.tasks.sync_current_season.delay") as season_delay,
+            mock.patch("telemetry.tasks.sync_session_task.delay") as tele_delay,
+            mock.patch.object(self.bot, "reply_to") as reply,
+        ):
+            self.handlers["syncrace"](self._make_message(user_id=999, text="/syncrace 5"))
+        season_delay.assert_not_called()
+        tele_delay.assert_not_called()
+        reply.assert_called_once()
+        self.assertIn("Not authorised", reply.call_args.args[1])
+
+    def test_syncrace_without_round_shows_usage(self):
+        with (
+            mock.patch("seasons.tasks.sync_current_season.delay") as season_delay,
+            mock.patch.object(self.bot, "reply_to") as reply,
+        ):
+            self.handlers["syncrace"](self._make_message(user_id=42, text="/syncrace"))
+        season_delay.assert_not_called()
+        self.assertIn("Usage", reply.call_args.args[1])
+
+    def test_syncrace_unknown_round_returns_friendly_error(self):
+        with (
+            mock.patch("seasons.tasks.sync_current_season.delay") as season_delay,
+            mock.patch.object(self.bot, "reply_to") as reply,
+        ):
+            self.handlers["syncrace"](self._make_message(user_id=42, text="/syncrace 99"))
+        season_delay.assert_not_called()
+        self.assertIn("not found", reply.call_args.args[1])
+
+    def test_syncrace_sprint_weekend_queues_all_sessions(self):
+        year = date.today().year
+        season, _ = Season.objects.get_or_create(year=year)
+        circuit, _ = Circuit.objects.get_or_create(
+            ref="spa", defaults={"name": "Spa-Francorchamps"}
+        )
+        rnd = Round.objects.create(
+            season=season,
+            number=5,
+            name="Belgian GP",
+            circuit=circuit,
+            date=date.today(),
+            has_sprint=True,
+        )
+
+        with (
+            mock.patch("seasons.tasks.sync_current_season.delay") as season_delay,
+            mock.patch("telemetry.tasks.sync_session_task.delay") as tele_delay,
+            mock.patch.object(self.bot, "reply_to") as reply,
+        ):
+            self.handlers["syncrace"](
+                self._make_message(user_id=42, text=f"/syncrace {rnd.number}")
+            )
+
+        season_delay.assert_called_once_with()
+        kinds = {c.args[2] for c in tele_delay.call_args_list}
+        self.assertEqual(kinds, {"race", "q", "sprint", "sq"})
+        self.assertEqual({c.args[1] for c in tele_delay.call_args_list}, {rnd.number})
+        self.assertIn("Belgian GP", reply.call_args.args[1])
+
+    # /synctelemetry ---------------------------------------------------------
+
+    def test_synctelemetry_rejects_non_admin(self):
+        with (
+            mock.patch("telemetry.tasks.sync_recent_telemetry.delay") as delay,
+            mock.patch.object(self.bot, "reply_to") as reply,
+        ):
+            self.handlers["synctelemetry"](self._make_message(user_id=999, text="/synctelemetry"))
+        delay.assert_not_called()
+        self.assertIn("Not authorised", reply.call_args.args[1])
+
+    def test_synctelemetry_admin_enqueues_task(self):
+        with (
+            mock.patch("telemetry.tasks.sync_recent_telemetry.delay") as delay,
+            mock.patch.object(self.bot, "reply_to") as reply,
+        ):
+            self.handlers["synctelemetry"](self._make_message(user_id=42, text="/synctelemetry"))
+        delay.assert_called_once_with()
+        self.assertIn("telemetry sync queued", reply.call_args.args[1])
+
+
 class TelemetryFormatterTests(TestCase):
     """Smoke tests for the FastF1-backed bot formatters."""
 
