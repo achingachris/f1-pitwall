@@ -9,6 +9,8 @@ from analytics import services as analytics
 from competitors.models import Constructor, Driver
 from results.models import Qualifying, Result, Standing
 from seasons.models import Round, Season
+from seasons.services import calendar as calendar_service
+from telemetry.services import queries as telemetry_queries
 from web.nationalities import country_code, flag_emoji
 from web.services.wiki import fetch_summary
 
@@ -19,6 +21,10 @@ def _cache_ver() -> str:
 
 def _template(request, full: str, partial: str) -> str:
     return partial if request.htmx else full
+
+
+def about(request):
+    return render(request, "web/about.html")
 
 
 def landing(request):
@@ -37,6 +43,12 @@ def landing(request):
         teams = analytics.contenders(year, constructor=True)
         cache.set(teams_key, teams, timeout=60 * 60 * 24)
 
+    # Calendar context is intentionally NOT cached so countdowns stay fresh.
+    live = calendar_service.current_race_weekend()
+    upcoming = None if live else calendar_service.next_race_weekend()
+    focus_round = live or upcoming
+    focus_session = calendar_service.current_or_next_session(focus_round) if focus_round else None
+
     return render(
         request,
         "web/landing.html",
@@ -47,6 +59,10 @@ def landing(request):
             "top_teams": teams[:5],
             "drivers_alive": len(drivers),
             "teams_alive": len(teams),
+            "live_round": live,
+            "upcoming_round": upcoming,
+            "focus_round": focus_round,
+            "focus_session": focus_session,
         },
     )
 
@@ -76,10 +92,18 @@ def round_detail(request, year: int, number: int):
         else []
     )
     quali = rnd.qualifying.select_related("driver", "constructor").order_by("position")
+    has_laps = telemetry_queries.race_session(rnd) is not None
     return render(
         request,
         _template(request, "web/round.html", "web/partials/round_body.html"),
-        {"year": year, "round": rnd, "race": race, "sprint": sprint, "quali": quali},
+        {
+            "year": year,
+            "round": rnd,
+            "race": race,
+            "sprint": sprint,
+            "quali": quali,
+            "has_laps": has_laps,
+        },
     )
 
 
@@ -154,11 +178,40 @@ def funstats(request, year: int):
     data = cache.get(key)
     if data is None:
         data = analytics.funstats(year)
+        data["top_speeds"] = telemetry_queries.season_top_speeds(year)
+        data["has_telemetry"] = bool(data["top_speeds"])
         cache.set(key, data, timeout=60 * 60 * 24)
     return render(
         request,
         _template(request, "web/funstats.html", "web/partials/funstats_body.html"),
         {"year": year, "data": data},
+    )
+
+
+def round_laps(request, year: int, number: int):
+    rnd = get_object_or_404(Round, season__year=year, number=number)
+    drivers = telemetry_queries.race_lap_series(rnd)
+    fastest = min((d["best_seconds"] for d in drivers if d["best_seconds"]), default=None)
+    if fastest:
+        for d in drivers:
+            d["delta_to_fastest"] = (
+                d["best_seconds"] - fastest if d["best_seconds"] is not None else None
+            )
+    return render(
+        request,
+        _template(request, "web/round_laps.html", "web/partials/round_laps_body.html"),
+        {"year": year, "round": rnd, "drivers": drivers, "session_best": fastest},
+    )
+
+
+def driver_laps_modal(request, year: int, number: int, ref: str):
+    rnd = get_object_or_404(Round, season__year=year, number=number)
+    driver = get_object_or_404(Driver, ref=ref)
+    laps = telemetry_queries.driver_lap_table(rnd, driver)
+    return render(
+        request,
+        "web/partials/driver_laps_modal.html",
+        {"year": year, "round": rnd, "driver": driver, "laps": laps},
     )
 
 

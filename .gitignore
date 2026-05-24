@@ -49,6 +49,7 @@ coverage.xml
 htmlcov/
 
 # Tool caches
+.fastf1cache/
 .mypy_cache/
 .ruff_cache/
 .tox/
@@ -58,6 +59,7 @@ htmlcov/
 
 # Logs
 *.log
+/logs/
 
 # Docker
 docker-compose.override.yml

@@ -1,10 +1,40 @@
+{% load flags %}
+{% if data.has_telemetry %}
+<section class="section">
+  <h2>Top speed-trap reading</h2>
+  <p class="subhead">From FastF1 race-session lap data — slipstreams and DRS trains push these higher than a pure car-pace ranking.</p>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Driver</th>
+          <th>Team</th>
+          <th>Grand Prix</th>
+          <th class="num">Speed (km/h)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in data.top_speeds %}
+          <tr>
+            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.nationality|flag }}{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
+            <td>{% if r.constructor %}{{ r.constructor.nationality|flag }}{{ r.constructor.name }}{% else %}—{% endif %}</td>
+            <td>{{ r.round.name }}</td>
+            <td class="num mono">{{ r.top_speed_kmh|floatformat:1 }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
 <div class="card">
   <p class="card-title">Season fastest lap</p>
   {% with data.season_fastest_lap as f %}
     {% if f %}
       <p class="card-value mono">{{ f.fastest_lap_time }}</p>
       <p class="card-sub">
-        <a class="entity-link" hx-get="{% url 'web:driver_modal' f.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ f.driver.given_name }} {{ f.driver.family_name }}</a> · {{ f.round.name }}
+        <a class="entity-link" hx-get="{% url 'web:driver_modal' f.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ f.driver.nationality|flag }}{{ f.driver.given_name }} {{ f.driver.family_name }}</a> · {{ f.round.name }}
       </p>
     {% else %}
       <p class="muted">No fastest-lap data yet.</p>
@@ -29,7 +59,7 @@
           <tr>
             <td class="num pos">{{ r.round.number }}</td>
             <td>{{ r.round.name }}</td>
-            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
+            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.nationality|flag }}{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
             <td class="num mono">{{ r.fastest_lap_time }}</td>
           </tr>
         {% empty %}
@@ -57,7 +87,7 @@
           <tr>
             <td class="num pos">{{ r.round.number }}</td>
             <td>{{ r.round.name }}</td>
-            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
+            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.nationality|flag }}{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
             <td class="num">{{ r.position }}</td>
           </tr>
         {% empty %}

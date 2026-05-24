@@ -7,6 +7,12 @@ psycopg[binary]>=3.2
 python-decouple>=3.8
 gunicorn>=23.0
 whitenoise>=6.7
+pyTelegramBotAPI>=4.20
+
+# Telemetry (v2). FastF1 pulls in pandas + numpy; only the worker really
+# needs it at runtime, but it's installed everywhere so management commands
+# and tests work uniformly.
+fastf1>=3.4
 
 # dev / tooling
 black>=24.10

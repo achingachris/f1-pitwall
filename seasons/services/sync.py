@@ -23,6 +23,27 @@ def _to_date(s: str) -> _date:
     return datetime.strptime(s, "%Y-%m-%d").date()
 
 
+def _session_dt(session: dict[str, Any] | None) -> datetime | None:
+    """Combine a jolpica session block's date+time into a datetime, or None.
+
+    Session blocks look like {"date": "2026-03-08", "time": "15:00:00Z"}.
+    Missing/malformed → None.
+    """
+    if not session:
+        return None
+    date_str = session.get("date")
+    time_str = session.get("time") or "00:00:00Z"
+    if not date_str:
+        return None
+    try:
+        # Trim trailing Z (Python's %z doesn't accept bare Z in 3.11+; format
+        # with explicit timezone instead).
+        iso = f"{date_str}T{time_str.rstrip('Z')}+00:00"
+        return datetime.fromisoformat(iso)
+    except ValueError:
+        return None
+
+
 def _as_int(value: Any, default: int = 0) -> int:
     """Parse an Ergast field that should be an int but may be missing or non-numeric."""
     if value in (None, ""):
@@ -109,6 +130,8 @@ def sync_schedule(year: int) -> Season:
             number = int(race["round"])
             circuit = _circuit(race["Circuit"])
             has_sprint = _is_sprint_weekend(race) or has_sprint_by_round.get(number, False)
+            # The race itself has top-level "date" + "time"; treat as a session.
+            race_block = {"date": race.get("date"), "time": race.get("time")}
             Round.objects.update_or_create(
                 season=season,
                 number=number,
@@ -117,6 +140,15 @@ def sync_schedule(year: int) -> Season:
                     "circuit": circuit,
                     "date": _to_date(race["date"]),
                     "has_sprint": has_sprint,
+                    "fp1_at": _session_dt(race.get("FirstPractice")),
+                    "fp2_at": _session_dt(race.get("SecondPractice")),
+                    "fp3_at": _session_dt(race.get("ThirdPractice")),
+                    "qualifying_at": _session_dt(race.get("Qualifying")),
+                    "sprint_qualifying_at": _session_dt(
+                        race.get("SprintQualifying") or race.get("SprintShootout")
+                    ),
+                    "sprint_at": _session_dt(race.get("Sprint")),
+                    "race_at": _session_dt(race_block),
                 },
             )
     return season

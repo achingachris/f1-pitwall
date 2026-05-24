@@ -1,3 +1,4 @@
+{% load flags %}
 <div class="table-wrap">
   <table class="table">
     <thead>
@@ -15,9 +16,9 @@
           <td class="num pos">{{ row.position }}</td>
           <td>
             {% if kind == 'driver' %}
-              <a class="entity-link" hx-get="{% url 'web:driver_modal' row.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ row.driver.given_name }} {{ row.driver.family_name }}</a>
+              <a class="entity-link" hx-get="{% url 'web:driver_modal' row.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ row.driver.nationality|flag }}{{ row.driver.given_name }} {{ row.driver.family_name }}</a>
             {% else %}
-              <a class="entity-link" hx-get="{% url 'web:team_modal' row.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ row.constructor.name }}</a>
+              <a class="entity-link" hx-get="{% url 'web:team_modal' row.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ row.constructor.nationality|flag }}{{ row.constructor.name }}</a>
             {% endif %}
           </td>
           {% if kind == 'driver' %}<td class="team mono">{{ row.driver.code|default:"—" }}</td>{% endif %}

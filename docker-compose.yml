@@ -24,6 +24,14 @@ services:
   web:
     build: .
     env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      FASTF1_CACHE_DIR: /cache/fastf1
+      LOG_DIR: /var/log/pitwall
+      RUN_BOT_WITH_SERVER: "false"
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,6 +39,9 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
+    volumes:
+      - fastf1cache:/cache/fastf1
+      - logs:/var/log/pitwall
     command: >
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
@@ -39,22 +50,66 @@ services:
   worker:
     build: .
     env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      FASTF1_CACHE_DIR: /cache/fastf1
+      LOG_DIR: /var/log/pitwall
+      RUN_BOT_WITH_SERVER: "false"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - fastf1cache:/cache/fastf1
+      - logs:/var/log/pitwall
     command: celery -A config worker -l info --concurrency 2
 
   beat:
     build: .
     env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      LOG_DIR: /var/log/pitwall
+      RUN_BOT_WITH_SERVER: "false"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - logs:/var/log/pitwall
     command: celery -A config beat -l info
+
+  bot:
+    build: .
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      FASTF1_CACHE_DIR: /cache/fastf1
+      LOG_DIR: /var/log/pitwall
+      RUN_BOT_WITH_SERVER: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - fastf1cache:/cache/fastf1
+      - logs:/var/log/pitwall
+    command: python manage.py run_telegram_bot
+    restart: unless-stopped
 
 volumes:
   pgdata: {}
+  fastf1cache: {}
+  logs: {}

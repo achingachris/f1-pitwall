@@ -6,8 +6,15 @@ app_name = "web"
 
 urlpatterns = [
     path("", views.landing, name="landing"),
+    path("about/", views.about, name="about"),
     path("<int:year>/", views.season, name="season"),
     path("<int:year>/r/<int:number>/", views.round_detail, name="round"),
+    path("<int:year>/r/<int:number>/laps/", views.round_laps, name="round_laps"),
+    path(
+        "<int:year>/r/<int:number>/laps/<str:ref>/",
+        views.driver_laps_modal,
+        name="driver_laps_modal",
+    ),
     path("<int:year>/standings/drivers/", views.driver_standings, name="driver_standings"),
     path("<int:year>/standings/teams/", views.team_standings, name="team_standings"),
     path("<int:year>/contenders/drivers/", views.driver_contenders, name="driver_contenders"),

@@ -4,10 +4,11 @@ Project-specific guidance for Codex sessions in this repo.
 
 ## What this is
 
-**Greedy Boole** — Django 5 + HTMX monolith for F1 stats. jolpica is the only
-data source in v1; FastF1 telemetry is deferred to v2. Deployed via
-docker-compose (`web`, `worker`, `beat`, `postgres`, `redis`) behind Nginx +
-Certbot, same flow as the user's other apps.
+**Pitwall** — Django 5 + HTMX monolith for F1 stats. jolpica is the primary
+data source; FastF1 is layered on top as v2 telemetry (additive only — see
+"FastF1 / telemetry" below). Deployed via docker-compose (`web`, `worker`,
+`beat`, `bot`, `postgres`, `redis`) behind Nginx + Certbot, same flow as the
+user's other apps.
 
 ## Repo conventions
 
@@ -84,18 +85,47 @@ Run `python -m black . && python -m isort .` after any non-trivial edit.
    the budget. `backfill_history` is resilient: a single round that fails
    logs and continues — it does not crash the whole task.
 
-5. **FastF1 / telemetry is v2.** Top speed, raw laps, `SessionStat` — none of
-   it lands until the v1 surface is solid. If the user asks for top-speed
-   stats, point them at the v2 placeholder in `funstats.html` and confirm
-   before pulling FastF1 in.
+5. **FastF1 / telemetry (v2) is additive only.** Lives in the `telemetry/`
+   app. Four tables, all written by a single entry point
+   `telemetry.services.sync.sync_session(round, kind)` off one FastF1 load:
+   - `Session` keyed on `(round, kind)`,
+   - `SessionStat` keyed on `(session, driver)` — fastest lap, top speed,
+     sector bests,
+   - `Lap` keyed on `(session, driver, number)` — per-lap times, sectors,
+     compound, tyre life, stint, position, speed trap, PB/deleted flags,
+   - `Stint` keyed on `(session, driver, number)` — compound, lap range,
+     count, age-at-start.
+   `Lap` and `Stint` are upserted via `bulk_create(update_conflicts=True)`;
+   the natural-key `UniqueConstraint`s are load-bearing.
+   **jolpica stays truth for `Result` and `Standing` — telemetry never
+   overwrites them.**
+   - Coverage starts in **2018** (`FASTF1_MIN_YEAR`). Pre-2018 seasons stay
+     jolpica-only; the client raises `FastF1Unavailable` (or
+     `sync_session_safe` swallows it).
+   - Cache: FastF1's on-disk Parquet cache lives at `settings.FASTF1_CACHE_DIR`
+     (`/cache/fastf1` under docker, `./.fastf1cache` locally). Mounted as a
+     named volume on `web`, `worker`, and `bot`; never commit this cache.
+   - Sync surface: `python manage.py sync_session <year> <round> <kind>` and
+     `telemetry.tasks.sync_session_task`. Triggered manually — no Beat entry
+     yet. **Run `sync_year` first** so the Driver/Constructor rows exist;
+     telemetry looks up drivers by their 3-letter `code` and skips unknown
+     ones rather than inventing rows.
+   - Telemetry syncs must prune stale `SessionStat`, `Lap`, and `Stint` rows
+     when a corrected FastF1 response no longer contains them.
+   - `fastf1` is imported **lazily** inside the client wrapper so the rest of
+     the app (tests, jolpica sync, the bot) doesn't pull pandas/numpy on
+     import. Keep it that way.
 
 ## Architecture in one breath
 
 ```
-jolpica  ──►  Celery task (sync.py, idempotent update_or_create)
+jolpica  ──►  seasons/services/sync.py (idempotent update_or_create)
+                  │
+FastF1  ──►  telemetry/services/sync.py (idempotent update_or_create)
                   │
                   ▼
-              Postgres  ──►  analytics/services.py (pure DB)
+              Postgres  ──►  analytics/services.py (pure DB, jolpica tables)
+                          ──►  telemetry/services/queries.py (pure DB, telemetry tables)
                                  │
                                  ▼
                              web/views.py (HTMX) ──►  templates/web/*.html
@@ -142,8 +172,8 @@ contract.
 
 - Don't add DRF, Next.js, or any JS framework without explicit ask — v1 is
   HTMX + server-rendered templates.
-- Don't introduce alternative data sources (FastF1, Sportradar, etc.)
-  silently. v1 is jolpica-only.
+- Don't introduce new alternative data sources (Sportradar, etc.) silently.
+  FastF1 is already approved only for telemetry tables and views.
 - Don't recompute standings or championship points from `Result` rows when
   `Standing` already has the snapshot.
 - Don't run concurrent jolpica fetches without revisiting the 500/hr ceiling.

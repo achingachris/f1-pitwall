@@ -1,11 +1,12 @@
+{% load flags %}
 <div class="grid grid-2">
   {% with data.driver as d %}
     <div class="card">
       <p class="card-title">Driver</p>
       <p class="card-value">
         {% if d and d.ref %}
-          <a class="entity-link" hx-get="{% url 'web:driver_modal' d.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ d.label }}</a>
-        {% elif d %}{{ d.label }}{% else %}—{% endif %}
+          <a class="entity-link" hx-get="{% url 'web:driver_modal' d.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ d.nationality|flag }}{{ d.label }}</a>
+        {% elif d %}{{ d.nationality|flag }}{{ d.label }}{% else %}—{% endif %}
       </p>
       {% if d %}
         <p class="card-sub">
@@ -22,8 +23,8 @@
       <p class="card-title">Constructor</p>
       <p class="card-value">
         {% if t and t.ref %}
-          <a class="entity-link" hx-get="{% url 'web:team_modal' t.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ t.label }}</a>
-        {% elif t %}{{ t.label }}{% else %}—{% endif %}
+          <a class="entity-link" hx-get="{% url 'web:team_modal' t.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ t.nationality|flag }}{{ t.label }}</a>
+        {% elif t %}{{ t.nationality|flag }}{{ t.label }}{% else %}—{% endif %}
       </p>
       {% if t %}
         <p class="card-sub">
@@ -58,8 +59,8 @@
               <td>Driver</td>
               <td>
                 {% if d.ref %}
-                  <a class="entity-link" hx-get="{% url 'web:driver_modal' d.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML"><strong>{{ d.label }}</strong></a>
-                {% else %}<strong>{{ d.label }}</strong>{% endif %}
+                  <a class="entity-link" hx-get="{% url 'web:driver_modal' d.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ d.nationality|flag }}<strong>{{ d.label }}</strong></a>
+                {% else %}{{ d.nationality|flag }}<strong>{{ d.label }}</strong>{% endif %}
               </td>
               <td class="num">{{ d.first_half_avg|floatformat:2 }}</td>
               <td class="num">{{ d.second_half_avg|floatformat:2 }}</td>
@@ -76,8 +77,8 @@
               <td>Constructor</td>
               <td>
                 {% if t.ref %}
-                  <a class="entity-link" hx-get="{% url 'web:team_modal' t.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML"><strong>{{ t.label }}</strong></a>
-                {% else %}<strong>{{ t.label }}</strong>{% endif %}
+                  <a class="entity-link" hx-get="{% url 'web:team_modal' t.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ t.nationality|flag }}<strong>{{ t.label }}</strong></a>
+                {% else %}{{ t.nationality|flag }}<strong>{{ t.label }}</strong>{% endif %}
               </td>
               <td class="num">{{ t.first_half_avg|floatformat:2 }}</td>
               <td class="num">{{ t.second_half_avg|floatformat:2 }}</td>

@@ -1,0 +1,80 @@
+{% extends "web/base.html" %}
+{% block title %}About · Pitwall{% endblock %}
+{% block content %}
+  <p class="crumbs"><a class="back-link" href="{% url 'web:landing' %}">← Home</a></p>
+  <h1>About Pitwall</h1>
+  <p class="subhead">An F1 season-analysis app built around two open data sources and a hand-rolled HTMX UI.</p>
+
+  <section class="section">
+    <h2>What it does</h2>
+    <ul>
+      <li><strong>Race weekend tracker</strong> on the landing page — shows the round currently happening, or counts down to the next session.</li>
+      <li><strong>Per-GP analysis</strong> — race, sprint, and qualifying results for any round, with sortable tables and country flags.</li>
+      <li><strong>Title contenders</strong> — drivers and constructors who can still mathematically win the championship, computed against the latest standings snapshot.</li>
+      <li><strong>Most improved</strong> — second-half-vs-first-half points-per-round delta for both drivers and teams.</li>
+      <li><strong>Fun stats</strong> — fastest lap per GP, slowest classified finisher, season top speed-trap.</li>
+      <li><strong>Lap by lap</strong> — for any 2018+ race, per-driver stint summary (compound + lap count) and full lap-by-lap detail.</li>
+      <li><strong>Telegram bot</strong> — the same features exposed as <code>/contenders</code>, <code>/standings</code>, <code>/round</code>, <code>/topspeeds</code>, <code>/laps</code>, etc.</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>Data sources</h2>
+    <div class="grid grid-2">
+      <div class="card">
+        <p class="card-title">Results &amp; standings</p>
+        <h3><a href="https://github.com/jolpica/jolpica-f1" target="_blank" rel="noopener">jolpica-f1</a></h3>
+        <p class="card-sub">
+          The Ergast successor — race results, qualifying, sprints, driver and constructor
+          standings, circuit info, season schedules. Covers <strong>1950 → today</strong>.
+          Pitwall pulls one season at a time via <code>sync_year</code>, or the full archive via
+          <code>backfill_history</code>.
+        </p>
+      </div>
+      <div class="card">
+        <p class="card-title">Telemetry &amp; laps</p>
+        <h3><a href="https://docs.fastf1.dev" target="_blank" rel="noopener">FastF1</a></h3>
+        <p class="card-sub">
+          Lap-level timing for every driver, tyre compound and stint structure,
+          speed-trap readings. Covers <strong>2018 → today</strong>. Pulled per-session via
+          <code>sync_session</code>; the multi-megabyte Parquet cache lives in a dedicated
+          docker volume so re-syncs are instant.
+        </p>
+      </div>
+    </div>
+    <p class="card-sub" style="margin-top: 12px;">
+      jolpica is the truth for points and standings. FastF1 is additive — it never
+      overwrites jolpica's tables.
+    </p>
+  </section>
+
+  <section class="section">
+    <h2>How it's built</h2>
+    <ul>
+      <li><strong>Django 5</strong> + <strong>HTMX</strong> for server-rendered UI with modal overlays — no SPA, no JS framework.</li>
+      <li><strong>Postgres</strong> (or SQLite locally) for storage; <strong>Redis</strong> for cache and Celery broker.</li>
+      <li><strong>Celery</strong> for nightly jolpica sync; cache invalidation via a version key bumped on every successful sync.</li>
+      <li><strong>FastF1</strong> imported lazily so the pandas/numpy weight only loads when telemetry is actually being synced.</li>
+      <li><strong>pyTelegramBotAPI</strong> bot — two transports (long-polling for dev, webhook for prod), same handlers.</li>
+      <li><strong>Idempotent ingest</strong> — every writer uses <code>update_or_create</code> or <code>bulk_create(update_conflicts=True)</code> against natural keys; re-running a sync is a no-op.</li>
+      <li><strong>Rate-safe jolpica client</strong> — 4 req/s burst, 500 req/hr sustained, with exponential backoff on 429.</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>Project</h2>
+    <p>
+      Source code on
+      <a href="https://github.com/achingachris/f1-pitwall" target="_blank" rel="noopener">GitHub</a>.
+      Licensed MIT. Contributions and issues welcome.
+    </p>
+    <p class="card-sub">
+      Pitwall is not affiliated with Formula 1, the FIA, or any team. All trademarks
+      and rights belong to their respective owners. Data via the open
+      <a href="https://github.com/jolpica/jolpica-f1" target="_blank" rel="noopener">jolpica-f1</a>
+      and
+      <a href="https://docs.fastf1.dev" target="_blank" rel="noopener">FastF1</a>
+      projects — please support them upstream.
+    </p>
+  </section>
+{% endblock %}

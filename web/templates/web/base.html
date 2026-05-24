@@ -3,11 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="color-scheme" content="dark only">
-  <meta name="theme-color" content="#021830">
+  <meta name="color-scheme" content="light only">
+  <meta name="theme-color" content="#ffffff">
   <title>{% block title %}Pitwall{% if year %} · {{ year }}{% endif %}{% endblock %}</title>
   <link rel="icon" type="image/png" href="{% static 'web/img/favicon.png' %}">
   <link rel="apple-touch-icon" href="{% static 'web/img/favicon.png' %}">
+  <script>
+    (function () {
+      function savedTheme() {
+        try {
+          return window.localStorage && window.localStorage.getItem('pitwall-theme');
+        } catch (e) {
+          return null;
+        }
+      }
+
+      var theme = savedTheme() || 'light';
+      document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+    })();
+  </script>
   <link rel="stylesheet" href="{% static 'web/styles.css' %}">
   <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
 </head>
@@ -27,6 +41,10 @@
           <a href="{% url 'web:funstats' year %}">Fun stats</a>
         {% endif %}
       </nav>
+      <button class="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="false">
+        <span class="theme-toggle-option" data-theme-label="light">Light</span>
+        <span class="theme-toggle-option" data-theme-label="dark">Dark</span>
+      </button>
     </div>
   </header>
   <main>
@@ -36,12 +54,46 @@
   </main>
   <footer class="site-footer">
     <div class="container">
-      Data via <a href="https://github.com/jolpica/jolpica-f1">jolpica-f1</a>.
+      Data via <a href="https://github.com/jolpica/jolpica-f1">jolpica-f1</a>
+      &amp; <a href="https://docs.fastf1.dev">FastF1</a>
+      · <a href="{% url 'web:about' %}">About</a>
     </div>
   </footer>
 
   <div id="modal-root"></div>
   <script>
+    (function () {
+      var root = document.documentElement;
+      var metaTheme = document.querySelector('meta[name="theme-color"]');
+      var metaScheme = document.querySelector('meta[name="color-scheme"]');
+      var toggle = document.querySelector('.theme-toggle');
+
+      function applyTheme(theme) {
+        var selected = theme === 'dark' ? 'dark' : 'light';
+        root.dataset.theme = selected;
+        try {
+          if (window.localStorage) window.localStorage.setItem('pitwall-theme', selected);
+        } catch (e) {}
+        if (metaTheme) metaTheme.setAttribute('content', selected === 'dark' ? '#021830' : '#ffffff');
+        if (metaScheme) metaScheme.setAttribute('content', selected === 'dark' ? 'dark only' : 'light only');
+        if (toggle) {
+          toggle.setAttribute('aria-pressed', selected === 'dark' ? 'true' : 'false');
+          toggle.setAttribute(
+            'aria-label',
+            selected === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
+          );
+        }
+      }
+
+      applyTheme(root.dataset.theme || 'light');
+
+      if (toggle) {
+        toggle.addEventListener('click', function () {
+          applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
+        });
+      }
+    })();
+
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         var root = document.getElementById('modal-root');

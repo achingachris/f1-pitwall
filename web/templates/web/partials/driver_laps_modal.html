@@ -1,0 +1,48 @@
+{% extends "web/partials/_modal_shell.html" %}
+
+{% block modal_title %}{{ driver.given_name }} {{ driver.family_name }} · laps{% endblock %}
+{% block modal_subhead %}
+  <p class="subhead muted">{{ round.name }} · {{ laps|length }} lap{{ laps|length|pluralize }}</p>
+{% endblock %}
+
+{% block modal_body %}
+  <div class="modal-section">
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="num">Lap</th>
+            <th class="num">Time</th>
+            <th class="num">S1</th>
+            <th class="num">S2</th>
+            <th class="num">S3</th>
+            <th>Compound</th>
+            <th class="num">Tyre life</th>
+            <th class="num">Pos</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lap in laps %}
+            <tr>
+              <td class="num">{{ lap.number }}</td>
+              <td class="num mono">{% if lap.lap_time_seconds %}{{ lap.lap_time_seconds|floatformat:3 }}{% else %}—{% endif %}</td>
+              <td class="num mono muted">{% if lap.sector1_seconds %}{{ lap.sector1_seconds|floatformat:3 }}{% else %}—{% endif %}</td>
+              <td class="num mono muted">{% if lap.sector2_seconds %}{{ lap.sector2_seconds|floatformat:3 }}{% else %}—{% endif %}</td>
+              <td class="num mono muted">{% if lap.sector3_seconds %}{{ lap.sector3_seconds|floatformat:3 }}{% else %}—{% endif %}</td>
+              <td>{{ lap.compound|default:"—" }}</td>
+              <td class="num">{% if lap.tyre_life %}{{ lap.tyre_life }}{% else %}—{% endif %}</td>
+              <td class="num">{% if lap.position %}{{ lap.position }}{% else %}—{% endif %}</td>
+              <td>
+                {% if lap.is_personal_best %}<span class="pill">PB</span>{% endif %}
+                {% if lap.is_deleted %}<span class="pill" style="background:#dc2626;color:#fff;">DEL</span>{% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td class="empty" colspan="9">No lap data.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

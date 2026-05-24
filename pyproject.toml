@@ -15,7 +15,7 @@ extend-exclude = '''
 profile = "black"
 line_length = 100
 known_django = ["django"]
-known_first_party = ["analytics", "app", "competitors", "config", "results", "seasons", "web"]
+known_first_party = ["analytics", "app", "bot", "competitors", "config", "results", "seasons", "telemetry", "web"]
 sections = ["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 skip = [".venv", "migrations", "node_modules", "build", "dist"]
 

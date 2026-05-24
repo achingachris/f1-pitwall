@@ -1,3 +1,4 @@
+{% load flags %}
 <section class="section">
   <h2>Race</h2>
   <div class="table-wrap">
@@ -16,8 +17,8 @@
         {% for r in race %}
           <tr>
             <td class="num pos">{{ r.position_text }}</td>
-            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
-            <td><a class="entity-link team" hx-get="{% url 'web:team_modal' r.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.constructor.name }}</a></td>
+            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.nationality|flag }}{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
+            <td><a class="entity-link team" hx-get="{% url 'web:team_modal' r.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.constructor.nationality|flag }}{{ r.constructor.name }}</a></td>
             <td class="num">{{ r.grid }}</td>
             <td class="num">{{ r.points }}</td>
             <td class="team">{{ r.status }}</td>
@@ -48,8 +49,8 @@
         {% for q in quali %}
           <tr>
             <td class="num pos">{{ q.position }}</td>
-            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' q.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ q.driver.given_name }} {{ q.driver.family_name }}</a></td>
-            <td><a class="entity-link team" hx-get="{% url 'web:team_modal' q.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ q.constructor.name }}</a></td>
+            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' q.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ q.driver.nationality|flag }}{{ q.driver.given_name }} {{ q.driver.family_name }}</a></td>
+            <td><a class="entity-link team" hx-get="{% url 'web:team_modal' q.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ q.constructor.nationality|flag }}{{ q.constructor.name }}</a></td>
             <td class="num mono">{{ q.q1|default:"—" }}</td>
             <td class="num mono">{{ q.q2|default:"—" }}</td>
             <td class="num mono">{{ q.q3|default:"—" }}</td>
@@ -79,8 +80,8 @@
         {% for r in sprint %}
           <tr>
             <td class="num pos">{{ r.position_text }}</td>
-            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
-            <td><a class="entity-link team" hx-get="{% url 'web:team_modal' r.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.constructor.name }}</a></td>
+            <td><a class="entity-link" hx-get="{% url 'web:driver_modal' r.driver.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.driver.nationality|flag }}{{ r.driver.given_name }} {{ r.driver.family_name }}</a></td>
+            <td><a class="entity-link team" hx-get="{% url 'web:team_modal' r.constructor.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ r.constructor.nationality|flag }}{{ r.constructor.name }}</a></td>
             <td class="num">{{ r.points }}</td>
           </tr>
         {% empty %}

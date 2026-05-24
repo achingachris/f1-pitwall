@@ -1,0 +1,48 @@
+{% load flags %}
+{% if not drivers %}
+  <section class="section">
+    <p class="muted">No FastF1 lap data for this race yet. Run <code>python manage.py sync_session {{ year }} {{ round.number }} race</code> to fetch it.</p>
+  </section>
+{% else %}
+
+<section class="section">
+  <h2>Stint summary</h2>
+  <p class="subhead">Drivers ordered by their fastest race lap. Stints show tyre compound and lap count.</p>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Driver</th>
+          <th class="num">Best lap</th>
+          <th class="num">Δ to fastest</th>
+          <th class="num">Laps</th>
+          <th>Stints</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in drivers %}
+          <tr>
+            <td>
+              <a class="entity-link"
+                 hx-get="{% url 'web:driver_laps_modal' year round.number d.driver.ref %}"
+                 hx-target="#modal-root" hx-swap="innerHTML">
+                {{ d.driver.nationality|flag }}{{ d.driver.given_name }} {{ d.driver.family_name }}
+              </a>
+            </td>
+            <td class="num mono">{{ d.best_seconds|floatformat:3 }}</td>
+            <td class="num mono muted">
+              {% if d.delta_to_fastest %}+{{ d.delta_to_fastest|floatformat:3 }}{% elif d.delta_to_fastest == 0 %}—{% endif %}
+            </td>
+            <td class="num">{{ d.laps|length }}</td>
+            <td>
+              {% for s in d.stints %}
+                <span class="pill">{{ s.compound|default:"?" }} · {{ s.laps_count }}L</span>{% if not forloop.last %} <span class="muted">→</span> {% endif %}
+              {% endfor %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}

@@ -2,6 +2,7 @@
 Django settings for config project.
 """
 
+import os
 from pathlib import Path
 
 from decouple import Csv, config
@@ -26,6 +27,8 @@ INSTALLED_APPS = [
     "results.apps.ResultsConfig",
     "analytics.apps.AnalyticsConfig",
     "web.apps.WebConfig",
+    "bot.apps.BotConfig",
+    "telemetry.apps.TelemetryConfig",
 ]
 
 MIDDLEWARE = [
@@ -38,6 +41,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    "web.middleware.RequestLogMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -121,3 +125,73 @@ CELERY_TASK_TIME_LIMIT = 60 * 60  # 1h hard cap for backfill chunks
 # jolpica client.
 JOLPICA_BASE = config("JOLPICA_BASE", default="https://api.jolpi.ca/ergast/f1")
 JOLPICA_USER_AGENT = config("JOLPICA_USER_AGENT", default="f1app/1.0")
+
+# FastF1 (v2 telemetry). Directory must be writable by web/worker/bot.
+# Falls back to a repo-local .fastf1cache/ dir when no env var is set so dev
+# environments without docker still work.
+FASTF1_CACHE_DIR = config("FASTF1_CACHE_DIR", default=str(BASE_DIR / ".fastf1cache"))
+
+# Telegram bot.
+TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_WEBHOOK_SECRET = config("TELEGRAM_WEBHOOK_SECRET", default="")
+TELEGRAM_ADMIN_IDS = config("TELEGRAM_ADMIN_IDS", default="", cast=Csv(int))
+
+# Logging.
+#
+# Two rotating files in production: `web.log` (request middleware + Django's
+# `django.request` 4xx/5xx records) and `bot.log` (Telegram command/callback
+# events). Dev (DEBUG=True) logs to stdout only — file handlers are skipped to
+# keep the working tree clean. Stdout stays on in prod too so `docker logs`
+# remains useful.
+LOG_DIR = config("LOG_DIR", default=str(BASE_DIR / "logs"))
+if not DEBUG:
+    os.makedirs(LOG_DIR, exist_ok=True)
+
+_LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s — %(message)s"
+_FILE_HANDLERS = (
+    {}
+    if DEBUG
+    else {
+        "web_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "web.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "default",
+        },
+        "bot_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "bot.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "default",
+        },
+    }
+)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"default": {"format": _LOG_FORMAT}},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "default"},
+        **_FILE_HANDLERS,
+    },
+    "loggers": {
+        "web.request": {
+            "handlers": ["console"] if DEBUG else ["console", "web_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"] if DEBUG else ["console", "web_file"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "bot": {
+            "handlers": ["console"] if DEBUG else ["console", "bot_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

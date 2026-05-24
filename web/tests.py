@@ -4,6 +4,7 @@ import responses
 
 from web import nationalities
 from web.services import wiki
+from web.templatetags.flags import flag
 
 
 class NationalityTests(TestCase):
@@ -60,3 +61,53 @@ class WikiSummaryTests(TestCase):
             json={"extract": "ok"},
         )
         self.assertEqual(wiki.fetch_summary("", fallback_title="Some Person")["extract"], "ok")
+
+
+class RequestLogMiddlewareTests(TestCase):
+    """Verify the access-log line shape — what ops staff will be grepping."""
+
+    def test_request_logs_method_path_status_and_duration(self):
+        from django.test import Client
+
+        c = Client()
+        with self.assertLogs("web.request", level="INFO") as captured:
+            r = c.get("/about/")
+        self.assertEqual(r.status_code, 200)
+        line = next((m for m in captured.output if "/about/" in m), None)
+        self.assertIsNotNone(line, "expected a request-log line for /about/")
+        self.assertIn("GET /about/", line)
+        self.assertIn(" 200 ", line)
+        self.assertIn("ip=", line)
+        self.assertIn("ua=", line)
+
+    def test_static_paths_are_not_logged(self):
+        from django.test import Client
+
+        c = Client()
+        try:
+            with self.assertLogs("web.request", level="INFO") as captured:
+                c.get("/static/web/styles.css")
+        except AssertionError:
+            return  # no log emitted — exactly what we want
+        self.assertFalse(
+            any("/static/" in m for m in captured.output),
+            "static asset paths should not appear in the access log",
+        )
+
+
+class FlagFilterTests(TestCase):
+    def test_known_nationality_returns_emoji_span(self):
+        out = flag("British")
+        self.assertIn("\U0001f1ec\U0001f1e7", out)
+        self.assertIn('class="flag"', out)
+        # Trailing space so the table-cell layout stays right.
+        self.assertTrue(out.endswith(" "))
+
+    def test_empty_or_none_returns_empty_string(self):
+        self.assertEqual(flag(""), "")
+        self.assertEqual(flag(None), "")
+
+    def test_unknown_nationality_returns_empty_string(self):
+        # The filter must not leave dangling "<span class='flag'></span>"
+        # spans when the nationality can't be mapped.
+        self.assertEqual(flag("Klingon"), "")

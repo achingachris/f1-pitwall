@@ -1,3 +1,4 @@
+{% load flags %}
 <div class="table-wrap">
   <table class="table">
     <thead>
@@ -15,9 +16,9 @@
           <td class="num pos">{{ forloop.counter }}</td>
           <td>
             {% if c.ref %}
-              <a class="entity-link" hx-get="{% if c.kind == 'driver' %}{% url 'web:driver_modal' c.ref %}{% else %}{% url 'web:team_modal' c.ref %}{% endif %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML"><strong>{{ c.label }}</strong></a>
+              <a class="entity-link" hx-get="{% if c.kind == 'driver' %}{% url 'web:driver_modal' c.ref %}{% else %}{% url 'web:team_modal' c.ref %}{% endif %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ c.nationality|flag }}<strong>{{ c.label }}</strong></a>
             {% else %}
-              <strong>{{ c.label }}</strong>
+              {{ c.nationality|flag }}<strong>{{ c.label }}</strong>
             {% endif %}
           </td>
           <td class="num">{{ c.points }}</td>

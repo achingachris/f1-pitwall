@@ -29,6 +29,7 @@ class Contender:
     max_attainable: float
     ref: str = ""
     kind: str = "driver"  # "driver" or "constructor" — used to build the modal URL
+    nationality: str = ""
 
 
 def latest_standings_round(year: int, kind: str = "driver") -> Round | None:
@@ -74,17 +75,21 @@ def contenders(year: int, constructor: bool = False) -> list[Contender]:
             if constructor and row.constructor:
                 label = row.constructor.name
                 ref = row.constructor.ref
+                nationality = row.constructor.nationality
             elif row.driver:
                 label = f"{row.driver.given_name} {row.driver.family_name}"
                 ref = row.driver.ref
+                nationality = row.driver.nationality
             else:
                 label = "?"
                 ref = ""
+                nationality = ""
             out.append(
                 Contender(
                     label=label,
                     ref=ref,
                     kind="constructor" if constructor else "driver",
+                    nationality=nationality,
                     points=row.points,
                     gap=leader - row.points,
                     max_attainable=row.points + cap,
@@ -129,6 +134,7 @@ def most_improved(year: int, constructor: bool = False) -> dict[str, Any] | None
         obj = Constructor.objects.filter(pk=pk).first()
         label = obj.name if obj else "?"
         ref = obj.ref if obj else ""
+        nationality = obj.nationality if obj else ""
         kind = "constructor"
     else:
         from competitors.models import Driver
@@ -136,12 +142,14 @@ def most_improved(year: int, constructor: bool = False) -> dict[str, Any] | None
         obj = Driver.objects.filter(pk=pk).first()
         label = obj.full_name if obj else "?"
         ref = obj.ref if obj else ""
+        nationality = obj.nationality if obj else ""
         kind = "driver"
 
     return {
         "label": label,
         "ref": ref,
         "kind": kind,
+        "nationality": nationality,
         "delta": diff,
         "first_half_avg": sum(by_round.get(n, 0) for n in first_half) / max(len(first_half), 1),
         "second_half_avg": sum(by_round.get(n, 0) for n in second_half) / max(len(second_half), 1),

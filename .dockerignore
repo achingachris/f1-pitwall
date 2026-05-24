@@ -13,3 +13,5 @@ db.sqlite3-journal
 .coverage
 htmlcov
 static_collected
+logs
+.fastf1cache

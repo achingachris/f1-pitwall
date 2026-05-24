@@ -1,5 +1,38 @@
 {% extends "web/base.html" %}
+{% load flags %}
 {% block content %}
+  {% if focus_round %}
+    <section class="card race-hero">
+      <div class="race-hero-head">
+        {% if live_round %}
+          <span class="pill pill-accent">🟢 Race weekend</span>
+        {% else %}
+          <span class="pill">Next race</span>
+        {% endif %}
+        <a class="race-hero-title" href="{% url 'web:round' focus_round.season.year focus_round.number %}">
+          R{{ focus_round.number }} · {{ focus_round.name }}
+        </a>
+      </div>
+      <p class="race-hero-meta">
+        {{ focus_round.circuit.name }} · {{ focus_round.date|date:"M j, Y" }}
+      </p>
+      {% if focus_session %}
+        {% with label=focus_session.0 dt=focus_session.1 is_live=focus_session.2 %}
+          <p class="race-hero-session">
+            {% if is_live %}
+              <strong>{{ label }} live now</strong>
+              <span class="muted"> · started {{ dt|timesince }} ago</span>
+            {% else %}
+              <strong>{{ label }}</strong>
+              <span class="muted"> · in {{ dt|timeuntil }}</span>
+              <span class="muted"> · {{ dt|date:"D M j, H:i" }} UTC</span>
+            {% endif %}
+          </p>
+        {% endwith %}
+      {% endif %}
+    </section>
+  {% endif %}
+
   <h1>Who can still win {{ year }}?</h1>
   <p class="subhead">Top 5 by points — based on remaining race + sprint points.</p>
 
@@ -24,7 +57,7 @@
               <td class="num pos">{{ forloop.counter }}</td>
               <td>
                 {% if c.ref %}
-                  <a class="entity-link" hx-get="{% url 'web:driver_modal' c.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML"><strong>{{ c.label }}</strong></a>
+                  <a class="entity-link" hx-get="{% url 'web:driver_modal' c.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ c.nationality|flag }}<strong>{{ c.label }}</strong></a>
                 {% else %}
                   <strong>{{ c.label }}</strong>
                 {% endif %}
@@ -62,7 +95,7 @@
               <td class="num pos">{{ forloop.counter }}</td>
               <td>
                 {% if c.ref %}
-                  <a class="entity-link" hx-get="{% url 'web:team_modal' c.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML"><strong>{{ c.label }}</strong></a>
+                  <a class="entity-link" hx-get="{% url 'web:team_modal' c.ref %}?year={{ year }}" hx-target="#modal-root" hx-swap="innerHTML">{{ c.nationality|flag }}<strong>{{ c.label }}</strong></a>
                 {% else %}
                   <strong>{{ c.label }}</strong>
                 {% endif %}
