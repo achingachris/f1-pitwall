@@ -32,6 +32,22 @@ class Contender:
     nationality: str = ""
 
 
+@dataclass(frozen=True)
+class StandingChange:
+    """Movement vs the previous stored standings snapshot (current season only)."""
+
+    position_delta: int  # positive = gained places (e.g. P5 → P3 → +2)
+    points_delta: float
+
+    @property
+    def positions_up(self) -> int:
+        return self.position_delta if self.position_delta > 0 else 0
+
+    @property
+    def positions_down(self) -> int:
+        return -self.position_delta if self.position_delta < 0 else 0
+
+
 def latest_standings_round(year: int, kind: str = "driver") -> Round | None:
     """The Round our most recent stored standings snapshot points at.
 
@@ -48,6 +64,61 @@ def latest_standings_round(year: int, kind: str = "driver") -> Round | None:
         .order_by("-number")
         .first()
     )
+
+
+def _previous_standings_round(year: int, latest: Round, kind: str) -> Round | None:
+    return (
+        Round.objects.filter(
+            season__year=year,
+            number__lt=latest.number,
+            standings__kind=kind,
+        )
+        .distinct()
+        .order_by("-number")
+        .first()
+    )
+
+
+def standing_changes(year: int, kind: str = "driver") -> dict[int, StandingChange] | None:
+    """Per-entity movement after the latest race/sprint on the current season.
+
+    Compares the latest jolpica standings snapshot to the prior round's snapshot.
+    Returns None when the change column should be hidden (past seasons, round 1,
+    or no race/sprint results yet for the latest round).
+    """
+    if year != date.today().year:
+        return None
+
+    latest = latest_standings_round(year, kind=kind)
+    if latest is None:
+        return None
+
+    if not Result.objects.filter(round=latest, session__in=("race", "sprint")).exists():
+        return None
+
+    previous = _previous_standings_round(year, latest, kind)
+    if previous is None:
+        return None
+
+    prev_rows = Standing.objects.filter(round=previous, kind=kind)
+    if kind == "driver":
+        prev_by_id = {row.driver_id: row for row in prev_rows if row.driver_id}
+    else:
+        prev_by_id = {row.constructor_id: row for row in prev_rows if row.constructor_id}
+
+    changes: dict[int, StandingChange] = {}
+    for current in Standing.objects.filter(round=latest, kind=kind):
+        eid = current.driver_id if kind == "driver" else current.constructor_id
+        if not eid:
+            continue
+        prior = prev_by_id.get(eid)
+        if prior is None:
+            continue
+        changes[eid] = StandingChange(
+            position_delta=prior.position - current.position,
+            points_delta=current.points - prior.points,
+        )
+    return changes
 
 
 def contenders(year: int, constructor: bool = False) -> list[Contender]:

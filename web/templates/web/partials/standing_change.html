@@ -1,0 +1,16 @@
+{% if movement %}
+  <span class="standing-change">
+    {% if movement.position_delta > 0 %}
+      <span class="delta-pos" title="Positions gained">↑{{ movement.position_delta }}</span>
+    {% elif movement.position_delta < 0 %}
+      <span class="delta-neg" title="Positions lost">↓{{ movement.positions_down }}</span>
+    {% else %}
+      <span class="delta-same" title="Same position">...</span>
+    {% endif %}
+    {% if movement.points_delta > 0 %}
+      <span class="delta-pos">+{{ movement.points_delta|floatformat:g }}</span>
+    {% elif movement.points_delta < 0 %}
+      <span class="delta-neg">{{ movement.points_delta|floatformat:g }}</span>
+    {% endif %}
+  </span>
+{% endif %}

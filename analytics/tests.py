@@ -73,6 +73,77 @@ class ContendersTests(TestCase):
             )
 
 
+class StandingChangeTests(TestCase):
+    def test_hidden_for_past_seasons(self):
+        _, rounds = _make_season(2020, rounds=2, future=0)
+        driver = Driver.objects.create(ref="d", given_name="A", family_name="B")
+        for rnd in rounds:
+            Standing.objects.create(
+                round=rnd, kind="driver", driver=driver, position=1, points=10
+            )
+        self.assertIsNone(services.standing_changes(2020, kind="driver"))
+
+    def test_gained_positions_and_points_on_current_season(self):
+        year = date.today().year
+        season = Season.objects.create(year=year)
+        circuit = Circuit.objects.create(ref="chg", name="Change Circuit")
+        r1 = Round.objects.create(
+            season=season, number=1, name="GP1", circuit=circuit, date=date.today()
+        )
+        r2 = Round.objects.create(
+            season=season, number=2, name="GP2", circuit=circuit, date=date.today()
+        )
+        constructor = Constructor.objects.create(ref="c", name="C")
+        driver = Driver.objects.create(ref="mv", given_name="Mover", family_name="Up")
+        Standing.objects.create(round=r1, kind="driver", driver=driver, position=3, points=10)
+        Standing.objects.create(round=r2, kind="driver", driver=driver, position=1, points=35)
+        Result.objects.create(
+            round=r2,
+            driver=driver,
+            constructor=constructor,
+            session="race",
+            position=1,
+            position_text="1",
+            points=25,
+        )
+
+        changes = services.standing_changes(year, kind="driver")
+        self.assertIsNotNone(changes)
+        change = changes[driver.id]
+        self.assertEqual(change.position_delta, 2)
+        self.assertEqual(change.points_delta, 25)
+        self.assertEqual(change.positions_up, 2)
+        self.assertEqual(change.positions_down, 0)
+
+    def test_same_position_shows_zero_delta(self):
+        year = date.today().year
+        season = Season.objects.create(year=year)
+        circuit = Circuit.objects.create(ref="flat", name="Flat Circuit")
+        r1 = Round.objects.create(
+            season=season, number=1, name="GP1", circuit=circuit, date=date.today()
+        )
+        r2 = Round.objects.create(
+            season=season, number=2, name="GP2", circuit=circuit, date=date.today()
+        )
+        constructor = Constructor.objects.create(ref="c2", name="C2")
+        driver = Driver.objects.create(ref="flat", given_name="Flat", family_name="P")
+        Standing.objects.create(round=r1, kind="driver", driver=driver, position=2, points=20)
+        Standing.objects.create(round=r2, kind="driver", driver=driver, position=2, points=32)
+        Result.objects.create(
+            round=r2,
+            driver=driver,
+            constructor=constructor,
+            session="sprint",
+            position=2,
+            position_text="2",
+            points=8,
+        )
+
+        change = services.standing_changes(year, kind="driver")[driver.id]
+        self.assertEqual(change.position_delta, 0)
+        self.assertEqual(change.points_delta, 12)
+
+
 class MostImprovedTests(TestCase):
     def test_late_bloomer_wins_delta(self):
         _, rounds = _make_season(2025, rounds=4, future=0)

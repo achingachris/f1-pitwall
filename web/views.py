@@ -15,8 +15,36 @@ from web.nationalities import country_code, flag_emoji
 from web.services.wiki import fetch_summary
 
 
-def _cache_ver() -> str:
-    return cache.get("f1:ver", "0")
+def _data_cache_ver() -> str:
+    from seasons.services.cache import DATA_VERSION_KEY, LEGACY_VERSION_KEY
+
+    return cache.get(DATA_VERSION_KEY) or cache.get(LEGACY_VERSION_KEY, "0")
+
+
+def _telemetry_cache_ver() -> str:
+    from seasons.services.cache import TELEMETRY_VERSION_KEY
+
+    return cache.get(TELEMETRY_VERSION_KEY, "0")
+
+
+def _standings_snapshot(year: int) -> int:
+    latest = analytics.latest_standings_round(year, kind="driver")
+    return latest.number if latest else 0
+
+
+def _get_contenders(year: int, *, constructor: bool, use_cache: bool):
+    """Load title contenders. Landing skips cache (same freshness as Telegram)."""
+    if not use_cache:
+        return analytics.contenders(year, constructor=constructor)
+    kind = "team" if constructor else "driver"
+    key = f"contenders:{kind}:{year}:{_data_cache_ver()}:r{_standings_snapshot(year)}"
+    cached = cache.get(key)
+    if cached is not None:
+        return cached
+    rows = analytics.contenders(year, constructor=constructor)
+    if rows:
+        cache.set(key, rows, timeout=60 * 60 * 24)
+    return rows
 
 
 def _template(request, full: str, partial: str) -> str:
@@ -94,29 +122,12 @@ def server_error(request):
 
 
 def landing(request):
+    # Match Telegram /contenders: always the calendar year, always a live DB read.
     year = date.today().year
-    if not Standing.objects.filter(round__season__year=year, kind="driver").exists():
-        fallback_year = (
-            Season.objects.filter(rounds__standings__kind="driver")
-            .order_by("-year")
-            .values_list("year", flat=True)
-            .first()
-        )
-        if fallback_year:
-            year = fallback_year
     seasons = list(Season.objects.values_list("year", flat=True)[:30])
 
-    ver = _cache_ver()
-    drivers_key = f"contenders:driver:{year}:{ver}"
-    teams_key = f"contenders:team:{year}:{ver}"
-    drivers = cache.get(drivers_key)
-    if drivers is None:
-        drivers = analytics.contenders(year, constructor=False)
-        cache.set(drivers_key, drivers, timeout=60 * 60 * 24)
-    teams = cache.get(teams_key)
-    if teams is None:
-        teams = analytics.contenders(year, constructor=True)
-        cache.set(teams_key, teams, timeout=60 * 60 * 24)
+    drivers = _get_contenders(year, constructor=False, use_cache=False)
+    teams = _get_contenders(year, constructor=True, use_cache=False)
 
     # Calendar context is intentionally NOT cached so countdowns stay fresh.
     live = calendar_service.current_race_weekend()
@@ -182,15 +193,37 @@ def round_detail(request, year: int, number: int):
     )
 
 
+def _standings_page_context(year: int, kind: str, latest: Round) -> dict:
+    rows = (
+        Standing.objects.filter(round=latest, kind=kind)
+        .select_related("driver", "constructor")
+        .order_by("position")
+    )
+    changes = analytics.standing_changes(year, kind=kind) or {}
+    entity_id = "driver_id" if kind == "driver" else "constructor_id"
+    return {
+        "year": year,
+        "kind": kind,
+        "latest": latest,
+        "show_movement": bool(changes),
+        "rows": [
+            {
+                "standing": row,
+                "movement": changes.get(getattr(row, entity_id)),
+            }
+            for row in rows
+        ],
+    }
+
+
 def driver_standings(request, year: int):
     latest = analytics.latest_standings_round(year, kind="driver")
     if not latest:
         raise Http404("No standings yet")
-    rows = Standing.objects.filter(round=latest, kind="driver").select_related("driver")
     return render(
         request,
         _template(request, "web/standings.html", "web/partials/standings_body.html"),
-        {"year": year, "rows": rows, "kind": "driver", "latest": latest},
+        _standings_page_context(year, "driver", latest),
     )
 
 
@@ -198,20 +231,15 @@ def team_standings(request, year: int):
     latest = analytics.latest_standings_round(year, kind="constructor")
     if not latest:
         raise Http404("No standings yet")
-    rows = Standing.objects.filter(round=latest, kind="constructor").select_related("constructor")
     return render(
         request,
         _template(request, "web/standings.html", "web/partials/standings_body.html"),
-        {"year": year, "rows": rows, "kind": "constructor", "latest": latest},
+        _standings_page_context(year, "constructor", latest),
     )
 
 
 def driver_contenders(request, year: int):
-    key = f"contenders:driver:{year}:{_cache_ver()}"
-    data = cache.get(key)
-    if data is None:
-        data = analytics.contenders(year, constructor=False)
-        cache.set(key, data, timeout=60 * 60 * 24)
+    data = _get_contenders(year, constructor=False, use_cache=True)
     return render(
         request,
         _template(request, "web/contenders.html", "web/partials/contenders_body.html"),
@@ -220,11 +248,7 @@ def driver_contenders(request, year: int):
 
 
 def team_contenders(request, year: int):
-    key = f"contenders:team:{year}:{_cache_ver()}"
-    data = cache.get(key)
-    if data is None:
-        data = analytics.contenders(year, constructor=True)
-        cache.set(key, data, timeout=60 * 60 * 24)
+    data = _get_contenders(year, constructor=True, use_cache=True)
     return render(
         request,
         _template(request, "web/contenders.html", "web/partials/contenders_body.html"),
@@ -233,7 +257,7 @@ def team_contenders(request, year: int):
 
 
 def most_improved(request, year: int):
-    key = f"improved:{year}:{_cache_ver()}"
+    key = f"improved:{year}:{_data_cache_ver()}:r{_standings_snapshot(year)}"
     data = cache.get(key)
     if data is None:
         data = {
@@ -249,7 +273,7 @@ def most_improved(request, year: int):
 
 
 def funstats(request, year: int):
-    key = f"funstats:{year}:{_cache_ver()}"
+    key = f"funstats:{year}:{_data_cache_ver()}:{_telemetry_cache_ver()}"
     data = cache.get(key)
     if data is None:
         data = analytics.funstats(year)

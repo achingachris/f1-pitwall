@@ -6,7 +6,7 @@ from django.utils.timezone import now
 from celery import shared_task
 
 from seasons.models import Round
-from seasons.services.cache import bump_data_version
+from seasons.services.cache import bump_telemetry_version
 from telemetry.services.sync import sync_session_safe
 
 log = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def sync_session_task(year: int, round_number: int, kind: str) -> str:
         return f"telemetry: no Round for {year} R{round_number}"
     counts = sync_session_safe(rnd, kind)
     if any(counts.values()):
-        bump_data_version()
+        bump_telemetry_version()
     return (
         f"telemetry: {year} R{round_number} {kind} → "
         f"stats={counts['stats']} laps={counts['laps']} stints={counts['stints']} "

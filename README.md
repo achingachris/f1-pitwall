@@ -208,8 +208,11 @@ cache.set("f1:ver", now().isoformat())
 key = f"contenders:driver:{year}:{cache.get('f1:ver', '0')}"
 ```
 
-The landing-page race weekend tracker is intentionally **not** cached so
-countdowns stay fresh.
+The landing-page race weekend tracker and contender tables are intentionally
+**not** cached (same live DB path as Telegram `/contenders`). Other analytics
+pages cache on `f1:ver:data` plus the latest standings round number; FastF1
+telemetry bumps `f1:ver:telemetry` only so hourly telemetry syncs do not
+invalidate jolpica-backed caches.
 
 ## License
 

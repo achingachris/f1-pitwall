@@ -8,10 +8,12 @@
         {% if kind == 'driver' %}<th>Code</th>{% endif %}
         <th class="num">Points</th>
         <th class="num">Wins</th>
+        {% if show_movement %}<th class="num">Change</th>{% endif %}
       </tr>
     </thead>
     <tbody>
-      {% for row in rows %}
+      {% for item in rows %}
+        {% with row=item.standing movement=item.movement %}
         <tr>
           <td class="num pos">{{ row.position }}</td>
           <td>
@@ -24,9 +26,13 @@
           {% if kind == 'driver' %}<td class="team mono">{{ row.driver.code|default:"—" }}</td>{% endif %}
           <td class="num"><strong>{{ row.points }}</strong></td>
           <td class="num">{{ row.wins }}</td>
+          {% if show_movement %}
+            <td class="num">{% include "web/partials/standing_change.html" %}</td>
+          {% endif %}
         </tr>
+        {% endwith %}
       {% empty %}
-        <tr><td class="empty" colspan="5">No standings yet.</td></tr>
+        <tr><td class="empty" colspan="{% if show_movement %}{% if kind == 'driver' %}6{% else %}5{% endif %}{% else %}{% if kind == 'driver' %}5{% else %}4{% endif %}{% endif %}">No standings yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

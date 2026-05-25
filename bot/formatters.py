@@ -6,7 +6,14 @@ from typing import Iterable
 
 from django.db.models import Count, Min, Sum
 
-from analytics.services import Contender, contenders, funstats, latest_standings_round
+from analytics.services import (
+    Contender,
+    StandingChange,
+    contenders,
+    funstats,
+    latest_standings_round,
+    standing_changes,
+)
 from analytics.services import most_improved as _most_improved
 from bot.team_names import official_name
 from competitors.models import Constructor, Driver
@@ -92,6 +99,23 @@ def format_contenders(year: int, kind: str, rows: Iterable[Contender]) -> str:
     return "\n".join(lines)
 
 
+def _format_standing_change(change: StandingChange | None) -> str:
+    if change is None:
+        return ""
+    parts: list[str] = []
+    if change.position_delta > 0:
+        parts.append(f"🟢↑{change.positions_up}")
+    elif change.position_delta < 0:
+        parts.append(f"🔴↓{change.positions_down}")
+    else:
+        parts.append("...")
+    if change.points_delta > 0:
+        parts.append(f"+{change.points_delta:g}")
+    elif change.points_delta < 0:
+        parts.append(f"{change.points_delta:g}")
+    return " " + " ".join(parts)
+
+
 def format_standings(year: int, kind: str, offset: int = 0, page: int = 10) -> str:
     latest = latest_standings_round(year, kind=kind)
     label = "Drivers" if kind == "driver" else "Constructors"
@@ -107,6 +131,8 @@ def format_standings(year: int, kind: str, offset: int = 0, page: int = 10) -> s
     rows = list(qs[offset : offset + page])
     if not rows:
         return f"{head}\n\n<i>No rows in this range.</i>"
+    changes = standing_changes(year, kind=kind) or {}
+    entity_id = "driver_id" if kind == "driver" else "constructor_id"
     lines = [head, f"<i>After R{latest.number} {_h(latest.name)}</i>", ""]
     for r in rows:
         if kind == "driver" and r.driver:
@@ -115,7 +141,8 @@ def format_standings(year: int, kind: str, offset: int = 0, page: int = 10) -> s
             who = _team_name(r.constructor)
         else:
             who = "?"
-        lines.append(f"<b>{r.position:>2}.</b> {who} — <b>{r.points:g}</b> pts · {r.wins}W")
+        delta = _format_standing_change(changes.get(getattr(r, entity_id)))
+        lines.append(f"<b>{r.position:>2}.</b> {who} — <b>{r.points:g}</b> pts · {r.wins}W{delta}")
     if total > offset + page:
         lines.append("")
         lines.append(f"<i>Showing {offset + 1}–{offset + len(rows)} of {total}.</i>")

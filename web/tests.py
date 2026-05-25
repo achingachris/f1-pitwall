@@ -80,6 +80,70 @@ class NavigationTests(TestCase):
         self.assertContains(response, 'aria-expanded="false"')
 
 
+class LandingContendersTests(TestCase):
+    """Landing must match Telegram /contenders: calendar year + live DB reads."""
+
+    def test_landing_ignores_stale_contenders_cache(self):
+        from datetime import date
+
+        from django.core.cache import cache
+        from django.test import Client
+
+        from analytics.services import Contender
+        from competitors.models import Constructor, Driver
+        from results.models import Standing
+        from seasons.models import Circuit, Round, Season
+
+        year = date.today().year
+        season = Season.objects.create(year=year)
+        circuit = Circuit.objects.create(ref="landing-test", name="Test Circuit")
+        rnd = Round.objects.create(
+            season=season,
+            number=1,
+            name="Test GP",
+            circuit=circuit,
+            date=date(year, 3, 1),
+        )
+        constructor = Constructor.objects.create(ref="landing-t", name="Team T")
+        leader = Driver.objects.create(ref="landing-leader", given_name="Live", family_name="Leader")
+        Standing.objects.create(
+            round=rnd,
+            kind="driver",
+            driver=leader,
+            constructor=None,
+            position=1,
+            points=100,
+        )
+        Standing.objects.create(
+            round=rnd,
+            kind="constructor",
+            driver=None,
+            constructor=constructor,
+            position=1,
+            points=100,
+        )
+
+        stale = [
+            Contender(
+                label="Stale Cached Bot",
+                points=1,
+                gap=99,
+                max_attainable=1,
+                ref="stale",
+                kind="driver",
+            )
+        ]
+        cache.set(f"contenders:driver:{year}:old-ver:r1", stale, timeout=60)
+        cache.set(f"contenders:driver:{year}:0", stale, timeout=60)
+
+        response = Client().get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f"Who can still win {year}?")
+        self.assertContains(response, "Live Leader")
+        self.assertNotContains(response, "Stale Cached Bot")
+
+
 class NationalityTests(TestCase):
     def test_known_demonym_maps_to_flag(self):
         self.assertEqual(nationalities.country_code("British"), "GB")

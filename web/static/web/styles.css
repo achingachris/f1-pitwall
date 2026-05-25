@@ -650,6 +650,19 @@ p {
   font-weight: 700;
 }
 
+.delta-same {
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+
+.standing-change {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
 .entity-link {
   border-bottom: 1px dotted rgba(143, 163, 179, 0.5);
   color: var(--fg);
